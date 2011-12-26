@@ -21,7 +21,7 @@ package polyutil
 
 import (
 	"bytes"
-	"polyclip"
+	"github.com/akavel/polyclip.go"
 	. "testing"
 )
 
