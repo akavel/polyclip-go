@@ -20,8 +20,8 @@
 package polyutil
 
 import (
-	"bitbucket.org/akavel/polyclip.go"
 	"bytes"
+	"github.com/akavel/polyclip.go"
 	. "testing"
 )
 
