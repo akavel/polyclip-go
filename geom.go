@@ -22,7 +22,7 @@
 // and code by Martínez et al: http://wwwdi.ujaen.es/~fmartin/bool_op.html (public domain)
 
 // Package polyclip provides implementation of algorithm for Boolean operations on 2D polygons.
-// For further details, consult the Polygon.Construct method.
+// For further details, consult the description of Polygon.Construct method.
 package polyclip
 
 import (
@@ -203,7 +203,7 @@ const (
 
 // Construct computes a 2D polygon, which is a result of performing
 // specified Boolean operation on the provided pair of polygons (p <Op> clipping).
-// It uses algorithm described by F. Martínez, A. S. Rueda, F. R. Feito
+// It uses algorithm described by F. Martínez, A. J. Rueda, F. R. Feito
 // in "A new algorithm for computing Boolean operations on polygons"
 // - see: http://wwwdi.ujaen.es/~fmartin/bool_op.html
 // The paper describes the algorithm as performing in time O((n+k) log n),
