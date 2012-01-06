@@ -79,7 +79,8 @@ func (c *Contour) Add(p Point) {
 }
 
 // BoundingBox finds minimum and maximum coordinates of points in a contour.
-func (c Contour) BoundingBox() (bb Rectangle) {
+func (c Contour) BoundingBox() Rectangle {
+	bb := Rectangle{}
 	bb.Min.X = math.Inf(1)
 	bb.Min.Y = math.Inf(1)
 	bb.Max.X = math.Inf(-1)
@@ -99,7 +100,7 @@ func (c Contour) BoundingBox() (bb Rectangle) {
 			bb.Min.Y = p.Y
 		}
 	}
-	return
+	return bb
 }
 
 func (c Contour) segment(index int) segment {
