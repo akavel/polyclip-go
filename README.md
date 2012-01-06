@@ -1,7 +1,7 @@
 About
 -----
 
-Library polyclip.go is a pure Go, MIT-licensed implementation of an [algorithm for Boolean operations on 2D polygons] [fmartin] (invented by F. Martínez, A.J. Rueda, F.R. Feito) &mdash; that is, for calculation of polygon intersection, union, difference and xor.
+Library polyclip.go is a pure Go, MIT-licensed implementation of an [algorithm for Boolean operations on 2D polygons] [fmartin] (invented by F. Martínez, A.J. Rueda, F.R. Feito) -- that is, for calculation of polygon intersection, union, difference and xor.
 
 The original paper describes the algorithm as performing in time _O((n+k) log n)_, where _n_ is number of all edges of all polygons in operation, and _k_ is number of intersections of all polygon edges.
 
@@ -46,6 +46,6 @@ See also
 --------
   * [Online godoc for polyclip.go][gopkgdoc] (courtesy of [http://gopkgdoc.appspot.com](http://gopkgdoc.appspot.com)).
   * Microsite about [the original algorithm][fmartin], from its authors (with PDF, and public-domain code in C++).
-  * The [as3polyclip] library &mdash; a MIT-licensed ActionScript3 library implementing this same algorithm (it actually served as a base for polyclip.go). The page also contains some thoughts with regards to speed of the algorithm.
+  * The [as3polyclip] library -- a MIT-licensed ActionScript3 library implementing this same algorithm (it actually served as a base for polyclip.go). The page also contains some thoughts with regards to speed of the algorithm.
   
   [as3polyclip]: http://code.google.com/p/as3polyclip/
