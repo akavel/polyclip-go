@@ -20,8 +20,8 @@
 package test
 
 import (
-	"bitbucket.org/akavel/polyclip.go"
-	"bitbucket.org/akavel/polyclip.go/polyutil"
+	"bitbucket.org/akavel/polyclip-go"
+	"bitbucket.org/akavel/polyclip-go/polyutil"
 	"image"
 	"image/color"
 	"image/draw"

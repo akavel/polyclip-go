@@ -24,7 +24,7 @@
 package polyutil
 
 import (
-	"bitbucket.org/akavel/polyclip.go"
+	"bitbucket.org/akavel/polyclip-go"
 	"fmt"
 	"io"
 )
