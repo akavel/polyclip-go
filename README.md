@@ -33,7 +33,7 @@ Simplest Go program using polyclip-go for calculating intersection of a square a
 
 To compile and run the program above, execute the usual sequence of commands:
 
-    go install github.com/akavel/polyclip-go  # or: bitbucket.org/...
+    go get github.com/akavel/polyclip-go  # or: bitbucket.org/...
     go build example.go
     ./example      # Windows: example.exe
 
