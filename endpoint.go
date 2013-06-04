@@ -6,10 +6,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -36,7 +36,7 @@ type endpoint struct {
 	other       *endpoint // Event associated to the other endpoint of the segment
 
 	// Does the segment (p, other->p) represent an inside-outside transition
-	// in the polygon for a vertical ray from (p.x, -infinite) that crosses the segment? 
+	// in the polygon for a vertical ray from (p.x, -infinite) that crosses the segment?
 	inout bool
 	edgeType
 	inside bool // Only used in "left" events. Is the segment (p, other->p) inside the other polygon?

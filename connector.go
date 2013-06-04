@@ -6,10 +6,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -40,7 +40,7 @@ func (c *connector) add(s segment) {
 
 		if chain.closed {
 			if len(chain.points) == 2 {
-				// We tried linking the same segment (but flipped end and start) to 
+				// We tried linking the same segment (but flipped end and start) to
 				// a chain. (i.e. chain was <p0, p1>, we tried linking Segment(p1, p0)
 				// so the chain was closed illegally.
 				chain.closed = false
@@ -55,7 +55,7 @@ func (c *connector) add(s segment) {
 		// !chain.closed
 		k := len(c.openPolys)
 		for i := j + 1; i < k; i++ {
-			// Try to connect this open link to the rest of the chains. 
+			// Try to connect this open link to the rest of the chains.
 			// We won't be able to connect this to any of the chains preceding this one
 			// because we know that linkSegment failed on those.
 			if chain.linkChain(&c.openPolys[i]) {
