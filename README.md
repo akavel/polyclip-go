@@ -41,7 +41,7 @@ To compile and run the program above, execute the usual sequence of commands:
     
 For full package documentation, run locally `godoc github.com/akavel/polyclip-go`, or visit [online documentation for polyclip-go][gopkgdoc].
     
-  [gopkgdoc]: http://gopkgdoc.appspot.com/pkg/github.com/akavel/polyclip-go
+  [gopkgdoc]: http://godoc.org/github.com/akavel/polyclip-go
     
 See also
 --------
