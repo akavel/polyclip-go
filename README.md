@@ -3,7 +3,7 @@ About
 
 [![Build Status on Travis-CI.](https://travis-ci.org/akavel/polyclip-go.svg?branch=master)](https://travis-ci.org/akavel/polyclip-go)
 ![License: MIT.](https://img.shields.io/badge/license-MIT-orange.svg)
-[![Documentation on godoc.org.](https://img.shields.io/badge/docs-github.com/akavel/polyclip--go-blue.svg)](https://godoc.org/github.com/akavel/polyclip-go)
+[![Documentation on godoc.org.](https://godoc.org/github.com/akavel/polyclip-go?status.svg)](https://godoc.org/github.com/akavel/polyclip-go)
 
 Library polyclip-go is a pure Go, MIT-licensed implementation of an [algorithm for Boolean operations on 2D polygons] [fmartin] (invented by F. Martínez, A.J. Rueda, F.R. Feito) -- that is, for calculation of polygon intersection, union, difference and xor.
 
