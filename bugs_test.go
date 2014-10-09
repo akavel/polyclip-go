@@ -100,6 +100,19 @@ func TestBug3c(t *T) {
 	}
 }
 
+// variation about TestBug3c, now single curve
+func TestBug3c2(t *T) {
+	subject := polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}}
+	clipping := polyclip.Polygon{
+		{{1, 2}, {2, 3}, {2, 2}, {2, 3}, {3, 2}}}
+	result := dump(subject.Construct(polyclip.UNION, clipping))
+
+	exp := dump(polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 2}, {2, 1}}})
+	if result != exp {
+		t.Errorf("expected %s, got %s", exp, result)
+	}
+}
+
 func TestBug3d(t *T) {
 	subject := polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}}
 	clipping := polyclip.Polygon{
@@ -108,6 +121,18 @@ func TestBug3d(t *T) {
 	result := dump(subject.Construct(polyclip.UNION, clipping))
 
 	exp := dump(polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 1}}})
+	if result != exp {
+		t.Errorf("expected %s, got %s", exp, result)
+	}
+}
+
+// "union" with effectively empty polygon (wholly self-intersecting)
+func TestBug3e(t *T) {
+	subject := polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}}
+	clipping := polyclip.Polygon{{{1, 2}, {2, 2}, {2, 3}, {1, 2}, {2, 2}, {2, 3}}}
+	result := dump(subject.Construct(polyclip.UNION, clipping))
+
+	exp := dump(polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}})
 	if result != exp {
 		t.Errorf("expected %s, got %s", exp, result)
 	}
