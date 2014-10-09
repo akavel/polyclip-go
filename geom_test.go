@@ -140,7 +140,6 @@ func TestContourContains(t *T) {
 	}
 }
 
-// [{1 1} {1 2} {2 1}]
 func ExamplePolygon_Construct() {
 	subject := Polygon{{{1, 1}, {1, 2}, {2, 2}, {2, 1}}} // small square
 	clipping := Polygon{{{0, 0}, {0, 3}, {3, 0}}}        // overlapping triangle
@@ -152,4 +151,5 @@ func ExamplePolygon_Construct() {
 	}
 	sort.Strings(out)
 	fmt.Println(out)
+	// Output: [{1 1} {1 2} {2 1}]
 }
