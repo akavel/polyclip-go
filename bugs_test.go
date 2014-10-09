@@ -55,85 +55,62 @@ func dump(poly polyclip.Polygon) string {
 }
 
 func TestBug3(t *T) {
-	subject := polyclip.Polygon{{{1, 1}, {1, 2}, {2, 2}, {2, 1}}}
-	clipping := polyclip.Polygon{
-		{{2, 1}, {2, 2}, {3, 2}, {3, 1}},
-		{{1, 2}, {1, 3}, {2, 3}, {2, 2}},
-		{{2, 2}, {2, 3}, {3, 3}, {3, 2}}}
-	result := dump(subject.Construct(polyclip.UNION, clipping))
-
-	exp := dump(polyclip.Polygon{{
-		{1, 1}, {2, 1}, {3, 1},
-		{3, 2}, {3, 3},
-		{2, 3}, {1, 3},
-		{1, 2}}})
-	if result != exp {
-		t.Errorf("expected %s, got %s", exp, result)
+	cases := []struct{ subject, clipping, result polyclip.Polygon }{
+		// original reported github issue #3
+		{
+			subject: polyclip.Polygon{{{1, 1}, {1, 2}, {2, 2}, {2, 1}}},
+			clipping: polyclip.Polygon{
+				{{2, 1}, {2, 2}, {3, 2}, {3, 1}},
+				{{1, 2}, {1, 3}, {2, 3}, {2, 2}},
+				{{2, 2}, {2, 3}, {3, 3}, {3, 2}}},
+			result: polyclip.Polygon{{
+				{1, 1}, {2, 1}, {3, 1},
+				{3, 2}, {3, 3},
+				{2, 3}, {1, 3},
+				{1, 2}}},
+		},
+		// simplified variant of issue #3, for easier debugging
+		{
+			subject: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}},
+			clipping: polyclip.Polygon{
+				{{2, 1}, {2, 2}, {3, 2}},
+				{{1, 2}, {2, 3}, {2, 2}},
+				{{2, 2}, {2, 3}, {3, 2}}},
+			result: polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 1}}},
+		},
+		{
+			subject: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}},
+			clipping: polyclip.Polygon{
+				{{1, 2}, {2, 3}, {2, 2}},
+				{{2, 2}, {2, 3}, {3, 2}}},
+			result: polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 2}, {2, 1}}},
+		},
+		// another variation, now with single degenerated curve
+		{
+			subject: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}},
+			clipping: polyclip.Polygon{
+				{{1, 2}, {2, 3}, {2, 2}, {2, 3}, {3, 2}}},
+			result: polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 2}, {2, 1}}},
+		},
+		{
+			subject: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}},
+			clipping: polyclip.Polygon{
+				{{2, 1}, {2, 2}, {2, 3}, {3, 2}},
+				{{1, 2}, {2, 3}, {2, 2}}},
+			result: polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 1}}},
+		},
+		// "union" with effectively empty polygon (wholly self-intersecting)
+		{
+			subject:  polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}},
+			clipping: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 3}, {1, 2}, {2, 2}, {2, 3}}},
+			result:   polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}},
+		},
 	}
-}
-
-// somewhat simplified variant, for easier debugging
-func TestBug3b(t *T) {
-	subject := polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}}
-	clipping := polyclip.Polygon{
-		{{2, 1}, {2, 2}, {3, 2}},
-		{{1, 2}, {2, 3}, {2, 2}},
-		{{2, 2}, {2, 3}, {3, 2}}}
-	result := dump(subject.Construct(polyclip.UNION, clipping))
-
-	exp := dump(polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 1}}})
-	if result != exp {
-		t.Errorf("expected %s, got %s", exp, result)
-	}
-}
-
-func TestBug3c(t *T) {
-	subject := polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}}
-	clipping := polyclip.Polygon{
-		{{1, 2}, {2, 3}, {2, 2}},
-		{{2, 2}, {2, 3}, {3, 2}}}
-	result := dump(subject.Construct(polyclip.UNION, clipping))
-
-	exp := dump(polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 2}, {2, 1}}})
-	if result != exp {
-		t.Errorf("expected %s, got %s", exp, result)
-	}
-}
-
-// variation about TestBug3c, now single curve
-func TestBug3c2(t *T) {
-	subject := polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}}
-	clipping := polyclip.Polygon{
-		{{1, 2}, {2, 3}, {2, 2}, {2, 3}, {3, 2}}}
-	result := dump(subject.Construct(polyclip.UNION, clipping))
-
-	exp := dump(polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 2}, {2, 1}}})
-	if result != exp {
-		t.Errorf("expected %s, got %s", exp, result)
-	}
-}
-
-func TestBug3d(t *T) {
-	subject := polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}}
-	clipping := polyclip.Polygon{
-		{{2, 1}, {2, 2}, {2, 3}, {3, 2}},
-		{{1, 2}, {2, 3}, {2, 2}}}
-	result := dump(subject.Construct(polyclip.UNION, clipping))
-
-	exp := dump(polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 1}}})
-	if result != exp {
-		t.Errorf("expected %s, got %s", exp, result)
-	}
-}
-
-// "union" with effectively empty polygon (wholly self-intersecting)
-func TestBug3e(t *T) {
-	subject := polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}}
-	clipping := polyclip.Polygon{{{1, 2}, {2, 2}, {2, 3}, {1, 2}, {2, 2}, {2, 3}}}
-	result := dump(subject.Construct(polyclip.UNION, clipping))
-
-	exp := dump(polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}})
-	if result != exp {
-		t.Errorf("expected %s, got %s", exp, result)
+	for _, c := range cases {
+		result := dump(c.subject.Construct(polyclip.UNION, c.clipping))
+		if result != dump(c.result) {
+			t.Errorf("case UNION:\nsubject:  %v\nclipping: %v\nexpected: %v\ngot:      %v",
+				c.subject, c.clipping, c.result, result)
+		}
 	}
 }
