@@ -5,6 +5,7 @@ import (
 	"github.com/akavel/polyclip-go"
 	"sort"
 	. "testing"
+	"time"
 )
 
 type sorter polyclip.Polygon
@@ -111,6 +112,50 @@ func TestBug3(t *T) {
 		if result != dump(c.result) {
 			t.Errorf("case UNION:\nsubject:  %v\nclipping: %v\nexpected: %v\ngot:      %v",
 				c.subject, c.clipping, c.result, result)
+		}
+	}
+}
+
+func TestBug4(t *T) {
+	if Short() {
+		return
+	}
+
+	cases := []struct{ subject, clipping, result polyclip.Polygon }{
+		// original reported github issue #4, resulting in infinte loop
+		{
+			subject: polyclip.Polygon{{
+				{1.427255375e+06, -2.3283064365386963e-10},
+				{1.4271285e+06, 134.7111358642578},
+				{1.427109e+06, 178.30108642578125}}},
+			clipping: polyclip.Polygon{{
+				{1.416e+06, -12000},
+				{1.428e+06, -12000},
+				{1.428e+06, 0},
+				{1.416e+06, 0},
+				{1.416e+06, -12000}}},
+			result: polyclip.Polygon{},
+		},
+	}
+	for _, c := range cases {
+		// check that we get a result in finite time
+
+		ch := make(chan polyclip.Polygon)
+		go func() {
+			ch <- c.subject.Construct(polyclip.UNION, c.clipping)
+		}()
+
+		var result polyclip.Polygon
+		select {
+		case result = <-ch:
+		case <-time.After(1 * time.Second):
+			// panicking in attempt to get full stacktrace
+			panic(fmt.Sprintf("case UNION:\nsubject:  %v\nclipping: %v\ntimed out.", c.subject, c.clipping))
+		}
+		s := dump(result)
+		if s != dump(c.result) {
+			t.Errorf("case UNION:\nsubject:  %v\nclipping: %v\nexpected: %v\ngot:      %v",
+				c.subject, c.clipping, c.result, s)
 		}
 	}
 }
