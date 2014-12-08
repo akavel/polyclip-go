@@ -1,6 +1,10 @@
 About
 -----
 
+[![Build Status on Travis-CI.](https://travis-ci.org/akavel/polyclip-go.svg?branch=master)](https://travis-ci.org/akavel/polyclip-go)
+![License: MIT.](https://img.shields.io/badge/license-MIT-orange.svg)
+[![Documentation on godoc.org.](https://godoc.org/github.com/akavel/polyclip-go?status.svg)](https://godoc.org/github.com/akavel/polyclip-go)
+
 Library polyclip-go is a pure Go, MIT-licensed implementation of an [algorithm for Boolean operations on 2D polygons] [fmartin] (invented by F. Martínez, A.J. Rueda, F.R. Feito) -- that is, for calculation of polygon intersection, union, difference and xor.
 
 The original paper describes the algorithm as performing in time _O((n+k) log n)_, where _n_ is number of all edges of all polygons in operation, and _k_ is number of intersections of all polygon edges.
@@ -37,15 +41,13 @@ To compile and run the program above, execute the usual sequence of commands:
     go build example.go
     ./example      # Windows: example.exe
 
-> **Note:** the polyclip-go library is developed for a fairly modern (at the time of writing) version of Go compiler, known as Go 1 RC1. If you have an older "release" version of Go, you may have problems compiling, and you are advised to switch to a newer "weekly" version. On the other hand, if you do have a newer version and encounter problems, please try using the `go fix` tool to update the polyclip-go library. I'll also be grateful if you could contact me about that.
+For full package documentation, run locally `godoc github.com/akavel/polyclip-go`, or visit [online documentation for polyclip-go][godoc].
     
-For full package documentation, run locally `godoc github.com/akavel/polyclip-go`, or visit [online documentation for polyclip-go][gopkgdoc].
-    
-  [gopkgdoc]: http://godoc.org/github.com/akavel/polyclip-go
+  [godoc]: http://godoc.org/github.com/akavel/polyclip-go
     
 See also
 --------
-  * [Online godoc for polyclip-go][gopkgdoc] (courtesy of [http://gopkgdoc.appspot.com](http://gopkgdoc.appspot.com)).
+  * [Online docs for polyclip-go][godoc].
   * Microsite about [the original algorithm][fmartin], from its authors (with PDF, and public-domain code in C++).
   * The [as3polyclip] library -- a MIT-licensed ActionScript3 library implementing this same algorithm (it actually served as a base for polyclip-go). The page also contains some thoughts with regards to speed of the algorithm.
   
