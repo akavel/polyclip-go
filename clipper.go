@@ -348,29 +348,31 @@ func findIntersection2(u0, u1, v0, v1 float64, w *[]float64) int {
 	if u1 < v0 || u0 > v1 {
 		return 0
 	}
-	if u1 > v0 {
-		if u0 < v1 {
-			if u0 < v0 {
-				*w = append(*w, v0)
-			} else {
-				*w = append(*w, u0)
-			}
-			if u1 > v1 {
-				*w = append(*w, v1)
-			} else {
-				*w = append(*w, u1)
-			}
-			return 2
-		} else {
-			// u0 == v1
-			*w = append(*w, u0)
-			return 1
-		}
+	if u1 == v0 {
+		*w = append(*w, u1)
+		return 1
 	}
 
-	// u1 == v0
-	*w = append(*w, u1)
-	return 1
+	// u1 > v0
+
+	if u0 == v1 {
+		*w = append(*w, u0)
+		return 1
+	}
+
+	// u0 < v1
+
+	if u0 < v0 {
+		*w = append(*w, v0)
+	} else {
+		*w = append(*w, u0)
+	}
+	if u1 > v1 {
+		*w = append(*w, v1)
+	} else {
+		*w = append(*w, u1)
+	}
+	return 2
 }
 
 func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
