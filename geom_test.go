@@ -140,6 +140,27 @@ func TestContourContains(t *T) {
 	}
 }
 
+func TestContourContains2(t *T) {
+	c1 := Contour{{55, 35}, {25, 35}, {25, 119}, {55, 119}}
+	c2 := Contour{{145, 35}, {145, 77}, {105, 77}, {105, 119}, {55, 119}, {55, 35}}
+	cases := []struct {
+		Contour
+		Point
+		Result bool
+	}{
+		{c1, Point{54.95, 77}, true},
+		{c1, Point{55.05, 77}, false},
+		{c2, Point{54.95, 77}, false},
+		{c2, Point{55.05, 77}, true},
+	}
+	for _, c := range cases {
+		result := c.Contour.Contains(c.Point)
+		if result != c.Result {
+			t.Errorf("case %v expected %v, got %v", c, c.Result, result)
+		}
+	}
+}
+
 func ExamplePolygon_Construct() {
 	subject := Polygon{{{1, 1}, {1, 2}, {2, 2}, {2, 1}}} // small square
 	clipping := Polygon{{{0, 0}, {0, 3}, {3, 0}}}        // overlapping triangle

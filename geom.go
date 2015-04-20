@@ -127,8 +127,15 @@ func (c Contour) Contains(p Point) bool {
 		}
 		next := c[ii]
 
-		if (p.Y >= next.Y || p.Y <= curr.Y) &&
-			(p.Y >= curr.Y || p.Y <= next.Y) {
+		// Is the point out of the edge's bounding box?
+		// bottom vertex is inclusive (belongs to edge), top vertex is
+		// exclusive (not part of edge) -- i.e. p lies "slightly above
+		// the ray"
+		bottom, top := curr, next
+		if bottom.Y > top.Y {
+			bottom, top = top, bottom
+		}
+		if p.Y < bottom.Y || p.Y >= top.Y {
 			continue
 		}
 		// Edge is from curr to next.
