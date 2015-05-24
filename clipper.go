@@ -388,10 +388,10 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 		return // the line segments intersect at an endpoint of both line segments
 	}
 
-	////if numIntersections == 2 && e1.p.Equals(e2.p) {
-	//if numIntersections == 2 && e1.polygonType == e2.polygonType {
-	//	return // the line segments overlap, but they belong to the same polygon
-	//}
+	//if numIntersections == 2 && e1.p.Equals(e2.p) {
+	if numIntersections == 2 && e1.polygonType == e2.polygonType {
+		return // the line segments overlap, but they belong to the same polygon
+	}
 
 	if numIntersections == 1 {
 		if !e1.p.Equals(ip1) && !e1.other.p.Equals(ip1) {
