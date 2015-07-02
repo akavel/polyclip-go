@@ -30,13 +30,14 @@ import (
 	"math"
 )
 
+// Point is an X, Y coordinate pair.
 type Point struct {
 	X, Y float64
 }
 
 // Equals returns true if both p1 and p2 describe exactly the same point.
-func (p1 Point) Equals(p2 Point) bool {
-	return p1.X == p2.X && p1.Y == p2.Y
+func (p Point) Equals(q Point) bool {
+	return p.X == q.X && p.Y == q.Y
 }
 
 // Length returns distance from p to point (0, 0).
@@ -209,22 +210,22 @@ type Rectangle struct {
 }
 
 // Union returns the smallest rectangle that contains both r and s.
-func (r1 Rectangle) Union(r2 Rectangle) Rectangle {
+func (r Rectangle) Union(s Rectangle) Rectangle {
 	return Rectangle{
 		Min: Point{
-			X: math.Min(r1.Min.X, r2.Min.X),
-			Y: math.Min(r1.Min.Y, r2.Min.Y),
+			X: math.Min(r.Min.X, s.Min.X),
+			Y: math.Min(r.Min.Y, s.Min.Y),
 		},
 		Max: Point{
-			X: math.Max(r1.Max.X, r2.Max.X),
-			Y: math.Max(r1.Max.Y, r2.Max.Y),
+			X: math.Max(r.Max.X, s.Max.X),
+			Y: math.Max(r.Max.Y, s.Max.Y),
 		}}
 }
 
 // Overlaps returns whether r1 and r2 have a non-empty intersection.
-func (r1 Rectangle) Overlaps(r2 Rectangle) bool {
-	return r1.Min.X <= r2.Max.X && r1.Max.X >= r2.Min.X &&
-		r1.Min.Y <= r2.Max.Y && r1.Max.Y >= r2.Min.Y
+func (r Rectangle) Overlaps(s Rectangle) bool {
+	return r.Min.X <= s.Max.X && r.Max.X >= s.Min.X &&
+		r.Min.Y <= s.Max.Y && r.Max.Y >= s.Min.Y
 }
 
 // String returns a string representation of r like "(3,4)-(6,5)".
@@ -467,7 +468,7 @@ func (c Contour) segment(index int) segment {
 	// if out-of-bounds, we expect panic detected by runtime
 }
 
-// Checks if a point is inside a contour using the "point in polygon" raycast method.
+// Contains checks if a point is inside a contour using the "point in polygon" raycast method.
 // This works for all polygons, whether they are clockwise or counter clockwise,
 // convex or concave.
 // See: http://en.wikipedia.org/wiki/Point_in_polygon#Ray_casting_algorithm
@@ -559,9 +560,13 @@ func (p Polygon) Clone() Polygon {
 type Op int
 
 const (
+	// UNION operation
 	UNION Op = iota
+	// INTERSECTION operation
 	INTERSECTION
+	// DIFFERENCE operation
 	DIFFERENCE
+	// XOR operation
 	XOR
 )
 
