@@ -501,5 +501,5 @@ func ExamplePolygon_Construct() {
 	}
 	sort.Strings(out)
 	fmt.Println(out)
-	// [(1.00,1.00) (1.00,2.00) (2.00,1.00)]
+	// Output: [(1.00,1.00) (1.00,2.00) (2.00,1.00)]
 }
