@@ -43,6 +43,189 @@ func TestPoint(t *T) {
 	verify(t, circa(Point{3, 4}.Length(), 5), "Expected length 5")
 }
 
+func ExamplePoint_Add() {
+	p := Point{0.8, 2.5}
+	q := Point{0.2, 3}
+	fmt.Println(p.Add(q))
+	// Output: (1.00,5.50)
+}
+
+func ExamplePoint_Sub() {
+	p := Point{0.8, 5}
+	q := Point{0.2, 0.5}
+	fmt.Println(p.Sub(q))
+	// Output: (0.60,4.50)
+}
+
+func ExamplePoint_Mul() {
+	p := Point{0.2, 0.5}
+	fmt.Println(p.Mul(2))
+	// Output: (0.40,1.00)
+}
+
+func ExamplePoint_Div() {
+	p := Point{0.2, 0.5}
+	fmt.Println(p.Div(2))
+	// Output: (0.10,0.25)
+}
+
+func ExamplePoint_In() {
+	p := Point{3, 4}
+	q := Point{0, 0}
+	r := Rect(1, 2, 9, 8)
+	fmt.Println(p.In(r))
+	fmt.Println(q.In(r))
+	// Output:
+	// true
+	// false
+}
+
+func ExamplePoint_Equals() {
+	p := Point{3, 4}
+	q := Point{0, 0}
+	r := Pt(3, 4)
+	fmt.Println(p.Equals(r))
+	fmt.Println(q.Equals(r))
+	// Output:
+	// true
+	// false
+}
+
+// Extra functions (not supported by image.Point)
+
+func ExamplePoint_Angle() {
+	p := Point{1, 0}
+	fmt.Println(p.Angle(Point{1, 1}))  // 45
+	fmt.Println(p.Angle(Point{1, -1})) // -45
+	// Output:
+	// 0.7853981633974484
+	// -0.7853981633974484
+}
+
+func ExamplePoint_Angle3() {
+	p := Point{1, 1}
+	q := Point{2, 1}
+	fmt.Println(p.Angle3(q, Point{2, 2}))
+	fmt.Println(p.Angle3(q, Point{2, 0}))
+	// Output:
+	// 0.7853981633974484
+	// -0.7853981633974484
+}
+
+func ExamplePoint_Append() {
+	p := Point{1, 2}
+	x := []float64{0, 1, 2}
+	y := []float64{3, 4, 5}
+	x, y = p.Append(x, y)
+	fmt.Println(x)
+	fmt.Println(y)
+	// Output:
+	// [0 1 2 1]
+	// [3 4 5 2]
+}
+
+func ExamplePoint_Cross() {
+	p := Point{1, 2}
+	q := Point{3, 4}
+	fmt.Println(p.Cross(q))
+	// Output: -2
+}
+
+func ExamplePoint_Dist() {
+	p := Point{1, 1}
+	q := Point{1, 5}
+	fmt.Println(p.Dist(q))
+	// Output: 4
+}
+
+func ExamplePoint_Dist2() {
+	p := Point{1, 1}
+	q := Point{1, 5}
+	fmt.Println(p.Dist2(q))
+	// Output: 16
+}
+
+func ExamplePoint_Dot() {
+	p := Point{1, 2}
+	q := Point{3, 4}
+	fmt.Println(p.Dot(q))
+	// Output: 11
+}
+
+func ExamplePoint_MaxRadius() {
+	rect := Rect(1, 2, 6, 9)
+	p := Point{1, 2}
+	fmt.Println(p.MaxRadius(rect))
+	// Output: 8.602325267042627
+}
+
+func ExamplePoint_Norm() {
+	p := Point{1, 2}
+	fmt.Println(p.Norm() == math.Sqrt(5))
+	// Output: true
+}
+
+func ExamplePoint_Norm2() {
+	p := Point{1, 2}
+	fmt.Println(p.Norm2())
+	// Output: 5
+}
+
+func ExamplePoint_Normalize() {
+	p := Point{1, 2}
+	fmt.Println(p.Normalize())
+	fmt.Println(p.Normalize() == p.Normalize(1))
+	fmt.Println(p.Normalize(2))
+	// Output:
+	// (0.45,0.89)
+	// true
+	// (0.89,1.79)
+}
+
+func ExamplePoint_Negate() {
+	p := Point{1, 2}
+	fmt.Println(p.Negate())
+	// Output: (-1.00,-2.00)
+}
+
+func ExamplePoint_Normals() {
+	p := Point{1, 1}
+	q := Point{3, 3}
+	fmt.Println(p.Normals(q))
+	// Output: (-2.00,2.00) (2.00,-2.00)
+}
+
+func ExamplePoint_Polar() {
+	p := Point{3, 3}
+	fmt.Println(p.Polar(2, math.Pi/2))
+	// Output: (3.00,5.00)
+}
+
+func ExamplePoint_Prepend() {
+	p := Point{1, 2}
+	x := []float64{0, 1, 2}
+	y := []float64{3, 4, 5}
+	x, y = p.Prepend(x, y)
+	fmt.Println(x)
+	fmt.Println(y)
+	// Output:
+	// [1 0 1 2]
+	// [2 3 4 5]
+}
+
+func ExamplePoint_Rect() {
+	p := Point{1, 2}
+	fmt.Println(p.Rect(8, 6))
+	// Output: (-3.00,-1.00)-(5.00,5.00)
+}
+
+func ExamplePoint_Tangent() {
+	p := Point{1, 2}
+	q := Point{3, 2}
+	fmt.Println(p.Tangent(q))
+	// Output: (1.00,0.00)
+}
+
 func rect(x, y, w, h float64) Rectangle {
 	return Rectangle{Min: Point{x, y}, Max: Point{x + w, y + h}}
 }
@@ -53,7 +236,7 @@ func TestRectangleUnion(t *T) {
 		{rect(10, 10, 10, 10), rect(-10, -10, 10, 10), rect(-10, -10, 30, 30)},
 	}
 	for i, v := range cases {
-		u := v.a.union(v.b)
+		u := v.a.Union(v.b)
 		r := v.result
 		verify(t, u.Min.X == r.Min.X && u.Min.Y == r.Min.Y && u.Max.X == r.Max.X && u.Max.Y == r.Max.Y, "Expected equal rectangles in case %d", i)
 	}
@@ -82,6 +265,152 @@ func TestRectangleIntersects(t *T) {
 	}
 }
 
+func ExampleRectangle_String() {
+	fmt.Println(Rect(1, 2, 3, 4))
+	// Output: (1.00,2.00)-(3.00,4.00)
+}
+
+func ExampleRectFromPoints() {
+	fmt.Println(RectFromPoints())
+	fmt.Println(RectFromPoints(Pt(2, 4)))
+	fmt.Println(RectFromPoints(Pt(0, 0), Pt(2, 4), Pt(-1, -2)))
+	// Output:
+	// (0.00,0.00)-(0.00,0.00)
+	// (2.00,4.00)-(2.00,4.00)
+	// (-1.00,-2.00)-(2.00,4.00)
+}
+
+func ExampleRectangle_Dx() {
+	rect := Rect(1, 2, 3, 4)
+	fmt.Println(rect.Dx())
+	// Output: 2
+}
+
+func ExampleRectangle_Dy() {
+	rect := Rect(1, 2, 3, 5)
+	fmt.Println(rect.Dy())
+	// Output: 3
+}
+
+func ExampleRectangle_Size() {
+	rect := Rect(1, 2, 3, 5)
+	fmt.Println(rect.Size())
+	// Output: (2.00,3.00)
+}
+
+func ExampleRectangle_Add() {
+	rect := Rect(1, 2, 3, 5)
+	p := Point{6, 7}
+	fmt.Println(rect.Add(p))
+	// Output: (7.00,9.00)-(9.00,12.00)
+}
+
+func ExampleRectangle_Sub() {
+	rect := Rect(1, 2, 3, 5)
+	p := Point{6, 7}
+	fmt.Println(rect.Sub(p))
+	// Output: (-5.00,-5.00)-(-3.00,-2.00)
+}
+
+func ExampleRectangle_Inset() {
+	rect := Rect(1, 2, 3, 5)
+	fmt.Println(rect.Inset(0.25))
+	fmt.Println(rect.Inset(2))
+	// Output:
+	// (1.25,2.25)-(2.75,4.75)
+	// (2.00,3.50)-(2.00,3.50)
+}
+
+func ExampleRectangle_Intersect() {
+	r := Rect(1, 2, 3, 5)
+	s := Rect(0, 0, 2, 3)
+	t := Rect(6, 7, 8, 9)
+	fmt.Println(r.Intersect(s))
+	fmt.Println(r.Intersect(t) == ZR)
+	// Output:
+	// (1.00,2.00)-(2.00,3.00)
+	// true
+}
+
+func ExampleRectangle_Union() {
+	r := Rect(1, 2, 3, 5)
+	s := Rect(0, 0, 3, 3)
+	t := Rect(6, 7, 8, 9)
+	fmt.Println(r.Union(s))
+	fmt.Println(r.Union(t))
+	// Output:
+	// (0.00,0.00)-(3.00,5.00)
+	// (1.00,2.00)-(8.00,9.00)
+}
+
+func ExampleRectangle_Empty() {
+	fmt.Println(Rectangle{Min: Point{7, 8}, Max: Point{1, 2}}.Empty())
+	fmt.Println(Rect(7, 8, 1, 2).Empty())
+	// Output:
+	// true
+	// false
+}
+
+func ExampleRectangle_Eq() {
+	r := Rectangle{Min: Point{1, 2}, Max: Point{7, 8}}
+	s := Rect(7, 8, 1, 2)
+	fmt.Println(r.Equals(s))
+	// Output:
+	// true
+}
+
+func ExampleRectangle_Overlaps() {
+	r := Rect(1, 2, 3, 5)
+	s := Rect(0, 0, 2, 3)
+	t := Rect(6, 7, 8, 9)
+	fmt.Println(r.Overlaps(s))
+	fmt.Println(r.Overlaps(t))
+	// Output:
+	// true
+	// false
+}
+
+func ExampleRectangle_In() {
+	r := Rect(1, 2, 4, 5)
+	s := Rect(2, 3, 3, 4)
+	t := Rectangle{Min: Point{7, 8}, Max: Point{1, 2}}
+	fmt.Println(s.In(r))
+	fmt.Println(t.In(r))
+	// Output:
+	// true
+	// true
+}
+
+func ExampleRectangle_Canon() {
+	r := Rectangle{Min: Point{7, 8}, Max: Point{1, 2}}
+	fmt.Println(r.Canon())
+	// Output: (1.00,2.00)-(7.00,8.00)
+}
+
+func ExampleRectangle_Diagonal() {
+	r := Rect(0, 0, 2, 2)
+	fmt.Println(r.Diagonal())
+	// Output: 2.8284271247461903
+}
+
+func ExampleRectangle_MaxRadius() {
+	rect := Rect(1, 2, 6, 9)
+	p := Point{1, 2}
+	fmt.Println(rect.MaxRadius(p))
+	// Output: 8.602325267042627
+}
+
+func ExampleRectangle_Offset() {
+	rect := Rect(1, 2, 6, 9)
+	fmt.Println(rect.Offset(4))
+	// Output: (-3.00,-2.00)-(10.00,13.00)
+}
+
+func ExampleRectangle_Points() {
+	rect := Rect(1, 2, 6, 9)
+	fmt.Println(rect.Points())
+	// Output: [(1.00,2.00) (1.00,9.00) (6.00,9.00) (6.00,2.00)]
+}
 func TestContourAdd(t *T) {
 	c := Contour{}
 	pp := []Point{{1, 2}, {3, 4}, {5, 6}}
@@ -172,5 +501,5 @@ func ExamplePolygon_Construct() {
 	}
 	sort.Strings(out)
 	fmt.Println(out)
-	// Output: [{1 1} {1 2} {2 1}]
+	// [(1.00,1.00) (1.00,2.00) (2.00,1.00)]
 }
