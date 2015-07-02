@@ -47,7 +47,6 @@ func (p Point) Length() float64 {
 // String returns a string representation of p like "(3,4)".
 func (p Point) String() string {
 	return fmt.Sprintf("(%.2f,%.2f)", p.X, p.Y)
-	//return "(" + strconv.FormatFloat(p.X, 'f', 2, 64) + "," + strconv.FormatFloat(p.Y, 'f', 2, 64) + ")"
 }
 
 // Add returns the vector p+q.
