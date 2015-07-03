@@ -34,17 +34,17 @@ func _DBG(f func()) {}
 type polygonType int
 
 const (
-	_SUBJECT polygonType = iota
-	_CLIPPING
+	polygonSubject polygonType = iota
+	polygonClipping
 )
 
 type edgeType int
 
 const (
-	_EDGE_NORMAL edgeType = iota
-	_EDGE_NON_CONTRIBUTING
-	_EDGE_SAME_TRANSITION
-	_EDGE_DIFFERENT_TRANSITION
+	edgeNormal edgeType = iota
+	edgeNonContributing
+	edgeSameTransition
+	edgeDifferentTransition
 )
 
 // This class contains methods for computing clipping operations on polygons.
@@ -91,12 +91,12 @@ func (c *clipper) compute(operation Op) Polygon {
 	// Add each segment to the eventQueue, sorted from left to right.
 	for _, cont := range c.subject {
 		for i := range cont {
-			addProcessedSegment(&c.eventQueue, cont.segment(i), _SUBJECT)
+			addProcessedSegment(&c.eventQueue, cont.segment(i), polygonSubject)
 		}
 	}
 	for _, cont := range c.clipping {
 		for i := range cont {
-			addProcessedSegment(&c.eventQueue, cont.segment(i), _CLIPPING)
+			addProcessedSegment(&c.eventQueue, cont.segment(i), polygonClipping)
 		}
 	}
 
@@ -106,7 +106,7 @@ func (c *clipper) compute(operation Op) Polygon {
 	// by sweeping from left to right.
 	S := sweepline{}
 
-	MINMAX_X := math.Min(subjectbb.Max.X, clippingbb.Max.X)
+	XMINMAX := math.Min(subjectbb.Max.X, clippingbb.Max.X)
 
 	_DBG(func() {
 		e := c.eventQueue.dequeue()
@@ -124,11 +124,11 @@ func (c *clipper) compute(operation Op) Polygon {
 
 		// optimization 1
 		switch {
-		case operation == INTERSECTION && e.p.X > MINMAX_X:
+		case operation == INTERSECTION && e.p.X > XMINMAX:
 			fallthrough
 		case operation == DIFFERENCE && e.p.X > subjectbb.Max.X:
 			return connector.toPolygon()
-			//case operation == UNION && e.p.X > MINMAX_X:
+			//case operation == UNION && e.p.X > XMINMAX:
 			//	_DBG(func() { fmt.Print("\nUNION optimization, fast quit\n") })
 			//	// add all the non-processed line segments to the result
 			//	if !e.left {
@@ -161,7 +161,7 @@ func (c *clipper) compute(operation Op) Polygon {
 			switch {
 			case prev == nil: // there is not a previous line segment in S?
 				e.inside, e.inout = false, false
-			case prev.edgeType != _EDGE_NORMAL:
+			case prev.edgeType != edgeNormal:
 				if pos-2 < 0 { // e overlaps with prev
 					// Not sure how to handle the case when pos - 2 < 0, but judging
 					// from the C++ implementation this looks like how it should be handled.
@@ -229,7 +229,7 @@ func (c *clipper) compute(operation Op) Polygon {
 
 			// Check if the line segment belongs to the Boolean operation
 			switch e.edgeType {
-			case _EDGE_NORMAL:
+			case edgeNormal:
 				switch operation {
 				case INTERSECTION:
 					if e.other.inside {
@@ -240,18 +240,18 @@ func (c *clipper) compute(operation Op) Polygon {
 						connector.add(e.segment())
 					}
 				case DIFFERENCE:
-					if (e.polygonType == _SUBJECT && !e.other.inside) ||
-						(e.polygonType == _CLIPPING && e.other.inside) {
+					if (e.polygonType == polygonSubject && !e.other.inside) ||
+						(e.polygonType == polygonClipping && e.other.inside) {
 						connector.add(e.segment())
 					}
 				case XOR:
 					connector.add(e.segment())
 				}
-			case _EDGE_SAME_TRANSITION:
+			case edgeSameTransition:
 				if operation == INTERSECTION || operation == UNION {
 					connector.add(e.segment())
 				}
-			case _EDGE_DIFFERENT_TRANSITION:
+			case edgeDifferentTransition:
 				if operation == DIFFERENCE {
 					connector.add(e.segment())
 				}
@@ -326,7 +326,7 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 	s1 := s0 + (d0.X*d1.X+d0.Y*d1.Y)/sqrLen0
 	smin := math.Min(s0, s1)
 	smax := math.Max(s0, s1)
-	w := make([]float64, 0)
+	var w []float64
 	imax := findIntersection2(0.0, 1.0, smin, smax, &w)
 
 	if imax > 0 {
@@ -406,7 +406,7 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 	}
 
 	// The line segments overlap
-	sortedEvents := make([]*endpoint, 0)
+	var sortedEvents []*endpoint
 	switch {
 	case e1.p.Equals(e2.p):
 		sortedEvents = append(sortedEvents, nil) // WTF [MC: WTF]
@@ -426,17 +426,17 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 	}
 
 	if len(sortedEvents) == 2 { // are both line segments equal?
-		e1.edgeType, e1.other.edgeType = _EDGE_NON_CONTRIBUTING, _EDGE_NON_CONTRIBUTING
+		e1.edgeType, e1.other.edgeType = edgeNonContributing, edgeNonContributing
 		if e1.inout == e2.inout {
-			e2.edgeType, e2.other.edgeType = _EDGE_SAME_TRANSITION, _EDGE_SAME_TRANSITION
+			e2.edgeType, e2.other.edgeType = edgeSameTransition, edgeSameTransition
 		} else {
-			e2.edgeType, e2.other.edgeType = _EDGE_DIFFERENT_TRANSITION, _EDGE_DIFFERENT_TRANSITION
+			e2.edgeType, e2.other.edgeType = edgeDifferentTransition, edgeDifferentTransition
 		}
 		return
 	}
 
 	if len(sortedEvents) == 3 { // the line segments share an endpoint
-		sortedEvents[1].edgeType, sortedEvents[1].other.edgeType = _EDGE_NON_CONTRIBUTING, _EDGE_NON_CONTRIBUTING
+		sortedEvents[1].edgeType, sortedEvents[1].other.edgeType = edgeNonContributing, edgeNonContributing
 		var idx int
 		// is the right endpoint the shared point?
 		if sortedEvents[0] != nil {
@@ -445,9 +445,9 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 			idx = 2
 		}
 		if e1.inout == e2.inout {
-			sortedEvents[idx].other.edgeType = _EDGE_SAME_TRANSITION
+			sortedEvents[idx].other.edgeType = edgeSameTransition
 		} else {
-			sortedEvents[idx].other.edgeType = _EDGE_DIFFERENT_TRANSITION
+			sortedEvents[idx].other.edgeType = edgeDifferentTransition
 		}
 		if sortedEvents[0] != nil {
 			c.divideSegment(sortedEvents[0], sortedEvents[1].p)
@@ -459,11 +459,11 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 
 	if sortedEvents[0] != sortedEvents[3].other {
 		// no line segment includes totally the OtherEnd one
-		sortedEvents[1].edgeType = _EDGE_NON_CONTRIBUTING
+		sortedEvents[1].edgeType = edgeNonContributing
 		if e1.inout == e2.inout {
-			sortedEvents[2].edgeType = _EDGE_SAME_TRANSITION
+			sortedEvents[2].edgeType = edgeSameTransition
 		} else {
-			sortedEvents[2].edgeType = _EDGE_DIFFERENT_TRANSITION
+			sortedEvents[2].edgeType = edgeDifferentTransition
 		}
 		c.divideSegment(sortedEvents[0], sortedEvents[1].p)
 		c.divideSegment(sortedEvents[1], sortedEvents[2].p)
@@ -471,12 +471,12 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 	}
 
 	// one line segment includes the other one
-	sortedEvents[1].edgeType, sortedEvents[1].other.edgeType = _EDGE_NON_CONTRIBUTING, _EDGE_NON_CONTRIBUTING
+	sortedEvents[1].edgeType, sortedEvents[1].other.edgeType = edgeNonContributing, edgeNonContributing
 	c.divideSegment(sortedEvents[0], sortedEvents[1].p)
 	if e1.inout == e2.inout {
-		sortedEvents[3].other.edgeType = _EDGE_SAME_TRANSITION
+		sortedEvents[3].other.edgeType = edgeSameTransition
 	} else {
-		sortedEvents[3].other.edgeType = _EDGE_DIFFERENT_TRANSITION
+		sortedEvents[3].other.edgeType = edgeDifferentTransition
 	}
 	c.divideSegment(sortedEvents[3].other, sortedEvents[2].p)
 }

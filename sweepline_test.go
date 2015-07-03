@@ -25,8 +25,8 @@ import (
 
 func TestVerticalZigzag(t *T) {
 	mkseg := func(xl, yl, xr, yr float64) (left *endpoint) {
-		left = &endpoint{p: Point{xl, yl}, left: true, polygonType: _SUBJECT}
-		right := &endpoint{p: Point{xr, yr}, polygonType: _SUBJECT, other: left}
+		left = &endpoint{p: Point{xl, yl}, left: true, polygonType: polygonSubject}
+		right := &endpoint{p: Point{xr, yr}, polygonType: polygonSubject, other: left}
 		left.other = right
 		return left
 	}
