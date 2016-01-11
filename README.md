@@ -1,3 +1,11 @@
+WARNING
+-------
+
+**The library is KNOWN TO HAVE BUGS!!!** Unfortunately, currently I don't have resources to investigate them thoroughly enough and in timely fashion. In case somebody is interested in taking ownership of the library, I'm open to ceding it. That said, the issues totally haunt me and occasionally I stubbornly try to come back to them and pick the fight up again. In particular:
+
+- #3 was confirmed to be **an omission in the original paper/algorithm**. As far as I understand, it surfaces when one of the polygons used has self-overlapping edges (e.g. when an edge (0,0)-(1,1) is used twice in the same polygon). I believe it should be possible to fix, but it requires thorough analysis of the algorithm and good testing. One attempt I made at a fix which seemed OK initially was later found to break the library even more and thus I reverted it.
+- #8 was reported recently and I haven't yet had time to even start investigating it.
+
 About
 -----
 
