@@ -48,18 +48,18 @@ func (e endpoint) String() string {
 		" other:", e.other.p, " inout:", e.inout, " inside:", e.inside, " edgeType:", e.edgeType, "}")
 }
 
-func (e1 *endpoint) equals(e2 *endpoint) bool {
-	return e1.p.Equals(e2.p) &&
-		e1.left == e2.left &&
-		e1.polygonType == e2.polygonType &&
-		e1.other == e2.other &&
-		e1.inout == e2.inout &&
-		e1.edgeType == e2.edgeType &&
-		e1.inside == e2.inside
+func (e *endpoint) equals(ep *endpoint) bool {
+	return e.p.Equals(ep.p) &&
+		e.left == ep.left &&
+		e.polygonType == ep.polygonType &&
+		e.other == ep.other &&
+		e.inout == ep.inout &&
+		e.edgeType == ep.edgeType &&
+		e.inside == ep.inside
 }
 
-func (se *endpoint) segment() segment {
-	return segment{se.p, se.other.p}
+func (e *endpoint) segment() segment {
+	return segment{e.p, e.other.p}
 }
 
 func signedArea(p0, p1, p2 Point) float64 {
@@ -68,13 +68,13 @@ func signedArea(p0, p1, p2 Point) float64 {
 }
 
 // Checks if this sweep event is below point p.
-func (se *endpoint) below(x Point) bool {
-	if se.left {
-		return signedArea(se.p, se.other.p, x) > 0
+func (e *endpoint) below(x Point) bool {
+	if e.left {
+		return signedArea(e.p, e.other.p, x) > 0
 	}
-	return signedArea(se.other.p, se.p, x) > 0
+	return signedArea(e.other.p, e.p, x) > 0
 }
 
-func (se *endpoint) above(x Point) bool {
-	return !se.below(x)
+func (e *endpoint) above(x Point) bool {
+	return !e.below(x)
 }

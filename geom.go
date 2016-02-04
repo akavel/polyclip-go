@@ -29,13 +29,14 @@ import (
 	"math"
 )
 
+// Point is an X, Y coordinate pair.
 type Point struct {
 	X, Y float64
 }
 
 // Equals returns true if both p1 and p2 describe exactly the same point.
-func (p1 Point) Equals(p2 Point) bool {
-	return p1.X == p2.X && p1.Y == p2.Y
+func (p Point) Equals(q Point) bool {
+	return p.X == q.X && p.Y == q.Y
 }
 
 // Length returns distance from p to point (0, 0).
@@ -43,6 +44,7 @@ func (p Point) Length() float64 {
 	return math.Sqrt(p.X*p.X + p.Y*p.Y)
 }
 
+// A Rectangle contains the points with Min.X <= X <= Max.X, Min.Y <= Y <= Max.Y.
 type Rectangle struct {
 	Min, Max Point
 }
@@ -111,7 +113,7 @@ func (c Contour) segment(index int) segment {
 	// if out-of-bounds, we expect panic detected by runtime
 }
 
-// Checks if a point is inside a contour using the "point in polygon" raycast method.
+// Contains checks if a point is inside a contour using the "point in polygon" raycast method.
 // This works for all polygons, whether they are clockwise or counter clockwise,
 // convex or concave.
 // See: http://en.wikipedia.org/wiki/Point_in_polygon#Ray_casting_algorithm
@@ -203,9 +205,13 @@ func (p Polygon) Clone() Polygon {
 type Op int
 
 const (
+	// UNION operation
 	UNION Op = iota
+	// INTERSECTION operation
 	INTERSECTION
+	// DIFFERENCE operation
 	DIFFERENCE
+	// XOR operation
 	XOR
 )
 
