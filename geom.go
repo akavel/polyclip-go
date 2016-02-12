@@ -27,6 +27,8 @@ package polyclip
 
 import (
 	"math"
+
+	"github.com/gonum/floats"
 )
 
 type Point struct {
@@ -35,7 +37,7 @@ type Point struct {
 
 // Equals returns true if both p1 and p2 describe exactly the same point.
 func (p1 Point) Equals(p2 Point) bool {
-	return p1.X == p2.X && p1.Y == p2.Y
+	return floats.EqualWithinULP(p1.X, p2.X, 2) && floats.EqualWithinULP(p1.Y, p2.Y, 2)
 }
 
 // Length returns distance from p to point (0, 0).
