@@ -26,6 +26,7 @@ package polyclip
 import (
 	"fmt"
 	"math"
+	"time"
 )
 
 //func _DBG(f func()) { f() }
@@ -117,7 +118,21 @@ func (c *clipper) compute(operation Op) Polygon {
 		}
 	})
 
+	// Checker for infinite loops for debugging
+	var timeout <-chan time.Time
+	_DBG(func() { timeout = time.After(60 * time.Second) })
+
 	for !c.eventQueue.IsEmpty() {
+
+		_DBG(func() {
+			select {
+			case <-timeout:
+				panic(fmt.Errorf("polyclip.compute: timeout (probably infinite loop)\n"+
+					"subject: %#v\nclipping: %#v", c.subject, c.clipping))
+			default:
+			}
+		})
+
 		var prev, next *endpoint
 		e := c.eventQueue.dequeue()
 		_DBG(func() { fmt.Printf("\nProcess event: (of %d)\n%v\n", len(c.eventQueue.elements)+1, *e) })
@@ -326,7 +341,7 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 	s1 := s0 + (d0.X*d1.X+d0.Y*d1.Y)/sqrLen0
 	smin := math.Min(s0, s1)
 	smax := math.Max(s0, s1)
-	w := make([]float64, 0)
+	w := make([]float64, 0, 2)
 	imax := findIntersection2(0.0, 1.0, smin, smax, &w)
 
 	if imax > 0 {
@@ -338,6 +353,12 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 		if imax > 1 {
 			pi1.X = p0.X + w[1]*d0.X
 			pi1.Y = p0.Y + w[1]*d0.Y
+			if pi1.Equals(pi0) {
+				// If d0*w[1] is very small compared to p0,
+				// pi0 and pi1 will be the same within floating point rounding error.
+				imax = 1
+				pi1 = Point{}
+			}
 		}
 	}
 

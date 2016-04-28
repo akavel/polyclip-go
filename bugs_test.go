@@ -190,9 +190,25 @@ func TestBug4(t *T) {
 				Point{X: -48000, Y: 24000},
 				Point{X: -48000, Y: -24000}}},
 		},
+		{
+			subject: Polygon{
+				Contour{
+					Point{X: -2.137000000000001e+06, Y: -122000.00000000093},
+					Point{X: -2.1360000000000005e+06, Y: -121999.99999999907},
+					Point{X: -2.1360000000000014e+06, Y: -121000.00000000186}},
+			},
+			clipping: Polygon{
+				Contour{
+					Point{X: -2.1120000000000005e+06, Y: -120000},
+					Point{X: -2.136000000000001e+06, Y: -120000.00000000093},
+					Point{X: -2.1360000000000005e+06, Y: -144000}}},
+		},
 	}
 	for i, c := range cases {
 		// check that we get a result in finite time
+		if i != 2 {
+			continue
+		}
 
 		ch := make(chan Polygon)
 		go func() {
