@@ -29,8 +29,9 @@ import (
 	"time"
 )
 
-//func _DBG(f func()) { f() }
-func _DBG(f func()) {}
+func _DBG(f func()) { f() }
+
+//func _DBG(f func()) {}
 
 type polygonType int
 
@@ -426,10 +427,10 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 		return
 	}
 
-	// The line segments overlap
+	// The line segments overlap and belong to different polygons
 	sortedEvents := make([]*endpoint, 0)
 	switch {
-	case e1.p.Equals(e2.p):
+	case e1.p.Equals(e2.p) || e1.p.Equals(e2.other.p):
 		sortedEvents = append(sortedEvents, nil) // WTF [MC: WTF]
 	case endpointLess(e1, e2):
 		sortedEvents = append(sortedEvents, e2, e1)
@@ -438,7 +439,7 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 	}
 
 	switch {
-	case e1.other.p.Equals(e2.other.p):
+	case e1.other.p.Equals(e2.other.p) || e1.other.p.Equals(e2.p):
 		sortedEvents = append(sortedEvents, nil)
 	case endpointLess(e1.other, e2.other):
 		sortedEvents = append(sortedEvents, e2.other, e1.other)
