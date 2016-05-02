@@ -23,9 +23,7 @@
 
 package polyclip
 
-import (
-	"sort"
-)
+import "sort"
 
 type eventQueue struct {
 	elements []*endpoint
