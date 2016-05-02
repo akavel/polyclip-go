@@ -38,21 +38,15 @@ func (q *eventQueue) enqueue(e *endpoint) {
 		return
 	}
 
-	// If already sorted use insertionSort on the inserted item.
-	// TODO: bisection search?
-	length := len(q.elements)
-	if length == 0 {
-		q.elements = append(q.elements, e)
-		return
-	}
+	// If already sorted, search for the correct location to insert e.
+	i := sort.Search(len(q.elements), func(i int) bool {
+		return endpointLess(e, q.elements[i])
+	})
 
+	// Insert e in the correct location.
 	q.elements = append(q.elements, nil)
-	i := length - 1
-	for i >= 0 && endpointLess(e, q.elements[i]) {
-		q.elements[i+1] = q.elements[i]
-		i--
-	}
-	q.elements[i+1] = e
+	copy(q.elements[i+1:], q.elements[i:])
+	q.elements[i] = e
 }
 
 // The ordering is reversed because push and pop are faster.
