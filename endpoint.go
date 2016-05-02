@@ -44,7 +44,7 @@ type endpoint struct {
 
 func (e endpoint) String() string {
 	sleft := map[bool]string{true: "left", false: "right"}
-	return fmt.Sprint("{", e.p, " ", sleft[e.left], " type:", e.polygonType,
+	return fmt.Sprint("{", e.p, " ", sleft[e.left], " polygonType:", e.polygonType,
 		" other:", e.other.p, " inout:", e.inout, " inside:", e.inside, " edgeType:", e.edgeType, "}")
 }
 

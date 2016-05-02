@@ -26,7 +26,7 @@ package polyclip
 import (
 	"fmt"
 	"math"
-	"time"
+	"os"
 )
 
 //func _DBG(f func()) { f() }
@@ -55,6 +55,10 @@ type clipper struct {
 	subject, clipping Polygon
 	eventQueue
 }
+
+// erri is a counter for the number of errors that have occured.
+// Delete if error debugging is no longer used.
+var erri int
 
 func (c *clipper) compute(operation Op) Polygon {
 
@@ -89,17 +93,10 @@ func (c *clipper) compute(operation Op) Polygon {
 		return Polygon{}
 	}
 
+	numSegments := 0
 	// Add each segment to the eventQueue, sorted from left to right.
-	for _, cont := range c.subject {
-		for i := range cont {
-			addProcessedSegment(&c.eventQueue, cont.segment(i), _SUBJECT)
-		}
-	}
-	for _, cont := range c.clipping {
-		for i := range cont {
-			addProcessedSegment(&c.eventQueue, cont.segment(i), _CLIPPING)
-		}
-	}
+	numSegments += addPolygonToQueue(&c.eventQueue, c.subject, _SUBJECT)
+	numSegments += addPolygonToQueue(&c.eventQueue, c.clipping, _CLIPPING)
 
 	connector := connector{} // to connect the edge solutions
 
@@ -118,24 +115,34 @@ func (c *clipper) compute(operation Op) Polygon {
 		}
 	})
 
-	// Checker for infinite loops for debugging
-	var timeout <-chan time.Time
-	_DBG(func() { timeout = time.After(60 * time.Second) })
+	i := 0
+
+	// The maximum possible number of events would be if every segment intersected
+	// with every other segment times two points per segment.
+	//  If we end up with more iterations than that
+	// in the following for loop we know we have a problem.
+	maxPossibleEvents := numSegments * numSegments * 2
 
 	for !c.eventQueue.IsEmpty() {
 
-		_DBG(func() {
-			select {
-			case <-timeout:
-				panic(fmt.Errorf("polyclip.compute: timeout (probably infinite loop)\n"+
-					"subject: %#v\nclipping: %#v", c.subject, c.clipping))
-			default:
+		if i > maxPossibleEvents {
+			fmt.Printf("polyclip.compute: infinite loop. "+
+				"Writing geometries to file error%d.log. "+
+				"Please report this issue at github.com/ctessum/polyclip-go.\n", erri)
+			f, err := os.Create(fmt.Sprintf("error%d.log", erri))
+			if err != nil {
+				panic(err)
 			}
-		})
+			fmt.Fprintf(f, "subject: %#v\nclipping: %#v\n", c.subject, c.clipping)
+			f.Close()
+			erri++
+			return connector.toPolygon()
+		}
+		i++
 
 		var prev, next *endpoint
 		e := c.eventQueue.dequeue()
-		_DBG(func() { fmt.Printf("\nProcess event: (of %d)\n%v\n", len(c.eventQueue.elements)+1, *e) })
+		_DBG(func() { fmt.Printf("\nProcess event: (%d of %d)\n%v\n", i, len(c.eventQueue.elements)+1, *e) })
 
 		// optimization 1
 		switch {
@@ -205,7 +212,7 @@ func (c *clipper) compute(operation Op) Polygon {
 			}
 
 			_DBG(func() {
-				fmt.Println("Status line after insertion: ")
+				fmt.Println("Status line after left insertion: ")
 				for _, e := range S {
 					fmt.Println(*e)
 				}
@@ -320,6 +327,11 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 		pi0.X = p0.X + s*d0.X
 		pi0.Y = p0.Y + s*d0.Y
 
+		if pi0.Equals(p0) {
+			// Owing to a rounding error, pi0 and p0 are not different.
+			return 0, Point{}, Point{}
+		}
+
 		// [MC: commented fragment removed]
 
 		return 1, pi0, pi1
@@ -342,21 +354,29 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 	smin := math.Min(s0, s1)
 	smax := math.Max(s0, s1)
 	w := make([]float64, 0, 2)
-	imax := findIntersection2(0.0, 1.0, smin, smax, &w)
+	imaxOriginal := findIntersection2(0.0, 1.0, smin, smax, &w)
+	imax := imaxOriginal
 
-	if imax > 0 {
+	if imaxOriginal > 0 {
 		pi0.X = p0.X + w[0]*d0.X
 		pi0.Y = p0.Y + w[0]*d0.Y
 
+		if pi0.Equals(p0) {
+			// If d0*w[1] is very small compared to p0,
+			// pi0 and p0 will be the same within floating point rounding error.
+			imax--
+			pi0 = Point{}
+		}
+
 		// [MC: commented fragment removed]
 
-		if imax > 1 {
+		if imaxOriginal > 1 {
 			pi1.X = p0.X + w[1]*d0.X
 			pi1.Y = p0.Y + w[1]*d0.Y
-			if pi1.Equals(pi0) {
+			if pi1.Equals(p0) {
 				// If d0*w[1] is very small compared to p0,
-				// pi0 and pi1 will be the same within floating point rounding error.
-				imax = 1
+				// pi1 and p0 will be the same within floating point rounding error.
+				imax--
 				pi1 = Point{}
 			}
 		}
@@ -521,6 +541,24 @@ func (c *clipper) divideSegment(e *endpoint, p Point) {
 	c.eventQueue.enqueue(r)
 }
 
+// addPolygonToQueue	adds p to the event queue, retuning the number of
+// segments that were added.
+func addPolygonToQueue(q *eventQueue, p Polygon, polyType polygonType) int {
+	numSegments := 0
+	for _, cont := range p {
+		if cont[0].Equals(cont[len(cont)-1]) {
+			// If the beginning point and the end point are the same,
+			// ignore the end point.
+			cont = cont[0 : len(cont)-1]
+		}
+		for i := range cont {
+			addProcessedSegment(q, cont.segment(i), polyType)
+			numSegments++
+		}
+	}
+	return numSegments
+}
+
 func addProcessedSegment(q *eventQueue, segment segment, polyType polygonType) {
 	if segment.start.Equals(segment.end) {
 		// Possible degenerate condition
@@ -543,7 +581,7 @@ func addProcessedSegment(q *eventQueue, segment segment, polyType polygonType) {
 		e1.left = false
 	}
 
-	// Pushing it so the que is sorted from left to right, with object on the left having the highest priority
+	// Pushing it so the queue is sorted from left to right, with object on the left having the highest priority
 	q.enqueue(e1)
 	q.enqueue(e2)
 }
