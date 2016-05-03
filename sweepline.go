@@ -51,21 +51,11 @@ func (s *sweepline) insert(item *endpoint) int {
 		return segmentCompare(item, (*s)[i])
 	})
 
-	// Insert e in the correct location.
+	// Insert item in the correct location.
 	*s = append(*s, nil)
 	copy((*s)[i+1:], (*s)[i:])
 	(*s)[i] = item
 
-	/**s = append(*s, &endpoint{})
-	i := length - 1
-	for i >= 0 && segmentCompare(item, (*s)[i]) {
-		(*s)[i+1] = (*s)[i]
-		i--
-	}
-	(*s)[i+1] = item
-	return i + 1
-	//TODO insertion sort?
-	*/
 	return i
 }
 
