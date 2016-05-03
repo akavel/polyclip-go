@@ -56,10 +56,6 @@ type clipper struct {
 	eventQueue
 }
 
-// erri is a counter for the number of errors that have occured.
-// Delete if error debugging is no longer used.
-var erri int
-
 func (c *clipper) compute(operation Op) Polygon {
 
 	// Test 1 for trivial result case
@@ -126,17 +122,15 @@ func (c *clipper) compute(operation Op) Polygon {
 	for !c.eventQueue.IsEmpty() {
 
 		if i > maxPossibleEvents {
-			fmt.Printf("polyclip.compute: infinite loop. "+
-				"Writing geometries to file error%d.log. "+
-				"Please report this issue at github.com/ctessum/polyclip-go.\n", erri)
-			f, err := os.Create(fmt.Sprintf("error%d.log", erri))
+			f, err := os.Create("policlipError.log")
 			if err != nil {
 				panic(err)
 			}
-			fmt.Fprintf(f, "subject: %#v\nclipping: %#v\n", c.subject, c.clipping)
+			fmt.Fprintf(f, "subject: %#v,\nclipping: %#v\n,", c.subject, c.clipping)
 			f.Close()
-			erri++
-			return connector.toPolygon()
+			panic("polyclip.compute: infinite loop. " +
+				"Writing geometries to file polyclipError.log. " +
+				"Please report this issue at github.com/ctessum/polyclip-go.")
 		}
 		i++
 
@@ -300,13 +294,20 @@ func (c *clipper) compute(operation Op) Polygon {
 	return connector.toPolygon()
 }
 
+var nanPoint Point
+
+func init() {
+	nanPoint = Point{X: math.NaN(), Y: math.NaN()}
+}
+
 func findIntersection(seg0, seg1 segment) (int, Point, Point) {
-	var pi0, pi1 Point
+	pi0 := nanPoint
+	pi1 := nanPoint
 	p0 := seg0.start
 	d0 := Point{seg0.end.X - p0.X, seg0.end.Y - p0.Y}
 	p1 := seg1.start
 	d1 := Point{seg1.end.X - p1.X, seg1.end.Y - p1.Y}
-	sqrEpsilon := 1e-7 // was 1e-3 earlier
+	sqrEpsilon := 0. // was 1e-3 earlier
 	E := Point{p1.X - p0.X, p1.Y - p0.Y}
 	kross := d0.X*d1.Y - d0.Y*d1.X
 	sqrKross := kross * kross
@@ -321,20 +322,15 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 		}
 		t := (E.X*d0.Y - E.Y*d0.X) / kross
 		if t < 0 || t > 1 {
-			return 0, Point{}, Point{}
+			return 0, nanPoint, nanPoint
 		}
 		// intersection of lines is a point an each segment [MC: ?]
 		pi0.X = p0.X + s*d0.X
 		pi0.Y = p0.Y + s*d0.Y
 
-		if pi0.Equals(p0) {
-			// Owing to a rounding error, pi0 and p0 are not different.
-			return 0, Point{}, Point{}
-		}
-
 		// [MC: commented fragment removed]
 
-		return 1, pi0, pi1
+		return 1, pi0, nanPoint
 	}
 
 	// lines of the segments are parallel
@@ -343,7 +339,7 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 	sqrKross = kross * kross
 	if sqrKross > sqrEpsilon*sqrLen0*sqrLenE {
 		// lines of the segment are different
-		return 0, pi0, pi1
+		return 0, nanPoint, nanPoint
 	}
 
 	// Lines of the segment are the same. Need to test for overlap of segments.
@@ -354,31 +350,17 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 	smin := math.Min(s0, s1)
 	smax := math.Max(s0, s1)
 	w := make([]float64, 0, 2)
-	imaxOriginal := findIntersection2(0.0, 1.0, smin, smax, &w)
-	imax := imaxOriginal
+	imax := findIntersection2(0.0, 1.0, smin, smax, &w)
 
-	if imaxOriginal > 0 {
+	if imax > 0 {
 		pi0.X = p0.X + w[0]*d0.X
 		pi0.Y = p0.Y + w[0]*d0.Y
 
-		if pi0.Equals(p0) {
-			// If d0*w[1] is very small compared to p0,
-			// pi0 and p0 will be the same within floating point rounding error.
-			imax--
-			pi0 = Point{}
-		}
-
 		// [MC: commented fragment removed]
 
-		if imaxOriginal > 1 {
+		if imax > 1 {
 			pi1.X = p0.X + w[1]*d0.X
 			pi1.Y = p0.Y + w[1]*d0.Y
-			if pi1.Equals(p0) {
-				// If d0*w[1] is very small compared to p0,
-				// pi1 and p0 will be the same within floating point rounding error.
-				imax--
-				pi1 = Point{}
-			}
 		}
 	}
 

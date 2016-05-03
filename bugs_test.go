@@ -230,10 +230,26 @@ func TestBug4(t *T) {
 				},
 			},
 		},
+		{
+			subject: Polygon{
+				[]Point{
+					Point{X: 608000, Y: -113151.36476426799},
+					Point{X: 608000, Y: -114660.04962779157},
+					Point{X: 612000, Y: -115414.39205955336},
+					Point{X: 1.616e+06, Y: -300000},
+					Point{X: 1.608e+06, Y: -303245.6575682382},
+					Point{X: 0, Y: 0},
+				},
+			},
+			clipping: Polygon{
+				[]Point{
+					Point{X: 1.612e+06, Y: -296000},
+				},
+			},
+		},
 	}
 	for i, c := range cases {
 		// check that we get a result in finite time
-
 		ch := make(chan Polygon)
 		go func() {
 			ch <- c.subject.Construct(UNION, c.clipping)
