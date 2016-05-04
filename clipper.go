@@ -113,11 +113,13 @@ func (c *clipper) compute(operation Op) Polygon {
 
 	i := 0
 
-	// The maximum possible number of events would be if every segment intersected
-	// with every other segment times two points per segment.
-	//  If we end up with more iterations than that
-	// in the following for loop we know we have a problem.
-	maxPossibleEvents := numSegments * numSegments * 2
+	//  From the manuscript, the cycle is executed
+	// n + 4k times, where n is the number of segments and k is the number of
+	// intersections. I believe the maximum k would be about n^2, but
+	// we assume it here to be 2*n. This may not be the absolute maximum
+	// number of events, but it is not likely that there would be more intersections
+	// than this in a real polygon.
+	maxPossibleEvents := numSegments * 9
 
 	for !c.eventQueue.IsEmpty() {
 
@@ -523,18 +525,52 @@ func (c *clipper) divideSegment(e *endpoint, p Point) {
 	c.eventQueue.enqueue(r)
 }
 
-// addPolygonToQueue	adds p to the event queue, retuning the number of
+type empty struct{}
+
+// a polygonGraph holds the points of a polygon in a graph struct.
+// The index of the first map is the starting point of each segment
+// in the polygon and the index of the second map is the ending point
+// of each segment.
+type polygonGraph map[Point]map[Point]empty
+
+// addToGraph adds the segments of the polygon to the graph in a
+// way that ensures the same segment is not included twice in the
+// polygon.
+func addToGraph(g *polygonGraph, seg segment) {
+	if seg.start.Equals(seg.end) {
+		// The starting and ending points are the same, so this is
+		// not in fact a segment.
+		return
+	}
+
+	if _, ok := (*g)[seg.end][seg.start]; ok {
+		// This polygonGraph already has a segment end -> start, adding
+		// start -> end would make the polygon degenerate, so we delete both.
+		delete((*g)[seg.end], seg.start)
+		return
+	}
+
+	if _, ok := (*g)[seg.start]; !ok {
+		(*g)[seg.start] = make(map[Point]empty)
+	}
+
+	// Add the segment.
+	(*g)[seg.start][seg.end] = empty{}
+}
+
+// addPolygonToQueue	adds p to the event queue, returning the number of
 // segments that were added.
 func addPolygonToQueue(q *eventQueue, p Polygon, polyType polygonType) int {
-	numSegments := 0
+	g := make(polygonGraph)
 	for _, cont := range p {
-		if cont[0].Equals(cont[len(cont)-1]) {
-			// If the beginning point and the end point are the same,
-			// ignore the end point.
-			cont = cont[0 : len(cont)-1]
-		}
 		for i := range cont {
-			addProcessedSegment(q, cont.segment(i), polyType)
+			addToGraph(&g, cont.segment(i))
+		}
+	}
+	numSegments := 0
+	for start, gg := range g {
+		for end := range gg {
+			addProcessedSegment(q, segment{start: start, end: end}, polyType)
 			numSegments++
 		}
 	}
@@ -542,10 +578,6 @@ func addPolygonToQueue(q *eventQueue, p Polygon, polyType polygonType) int {
 }
 
 func addProcessedSegment(q *eventQueue, segment segment, polyType polygonType) {
-	if segment.start.Equals(segment.end) {
-		// Possible degenerate condition
-		return
-	}
 
 	e1 := &endpoint{p: segment.start, left: true, polygonType: polyType}
 	e2 := &endpoint{p: segment.end, left: true, polygonType: polyType, other: e1}
