@@ -124,7 +124,7 @@ func (c *clipper) compute(operation Op) Polygon {
 	for !c.eventQueue.IsEmpty() {
 
 		if i > maxPossibleEvents {
-			f, err := os.Create("policlipError.log")
+			f, err := os.Create("polyclipError.log")
 			if err != nil {
 				panic(err)
 			}
