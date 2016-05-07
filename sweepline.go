@@ -23,6 +23,8 @@
 
 package polyclip
 
+import "sort"
+
 // This is the data structure that simulates the sweepline as it parses through
 // eventQueue, which holds the events sorted from left to right (x-coordinate).
 // TODO: optimizations? use sort.Search()?
@@ -44,17 +46,20 @@ func (s *sweepline) insert(item *endpoint) int {
 		return 0
 	}
 
-	*s = append(*s, &endpoint{})
-	i := length - 1
-	for i >= 0 && segmentCompare(item, (*s)[i]) {
-		(*s)[i+1] = (*s)[i]
-		i--
-	}
-	(*s)[i+1] = item
-	return i + 1
-	//TODO insertion sort?
+	// Search for the correct location to insert item.
+	i := sort.Search(len(*s), func(i int) bool {
+		return segmentCompare(item, (*s)[i])
+	})
+
+	// Insert item in the correct location.
+	*s = append(*s, nil)
+	copy((*s)[i+1:], (*s)[i:])
+	(*s)[i] = item
+
+	return i
 }
 
+// segmentCompare returns whether e1 is considered less than e2.
 func segmentCompare(e1, e2 *endpoint) bool {
 	switch {
 	case e1 == e2:

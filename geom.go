@@ -25,9 +25,7 @@
 // For further details, consult the description of Polygon.Construct method.
 package polyclip
 
-import (
-	"math"
-)
+import "math"
 
 type Point struct {
 	X, Y float64

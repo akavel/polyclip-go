@@ -26,6 +26,7 @@ package polyclip
 import (
 	"fmt"
 	"math"
+	"os"
 )
 
 //func _DBG(f func()) { f() }
@@ -88,17 +89,10 @@ func (c *clipper) compute(operation Op) Polygon {
 		return Polygon{}
 	}
 
+	numSegments := 0
 	// Add each segment to the eventQueue, sorted from left to right.
-	for _, cont := range c.subject {
-		for i := range cont {
-			addProcessedSegment(&c.eventQueue, cont.segment(i), _SUBJECT)
-		}
-	}
-	for _, cont := range c.clipping {
-		for i := range cont {
-			addProcessedSegment(&c.eventQueue, cont.segment(i), _CLIPPING)
-		}
-	}
+	numSegments += addPolygonToQueue(&c.eventQueue, c.subject, _SUBJECT)
+	numSegments += addPolygonToQueue(&c.eventQueue, c.clipping, _CLIPPING)
 
 	connector := connector{} // to connect the edge solutions
 
@@ -117,10 +111,31 @@ func (c *clipper) compute(operation Op) Polygon {
 		}
 	})
 
+	i := 0
+
+	//  From the manuscript, the cycle is executed
+	// n + 4k times, where n is the number of segments and k is the number of
+	// intersections. I believe the maximum k would be about n^2.
+	maxPossibleEvents := numSegments + 4*numSegments*numSegments
+
 	for !c.eventQueue.IsEmpty() {
+
+		if i > maxPossibleEvents {
+			f, err := os.Create("polyclipError.log")
+			if err != nil {
+				panic(err)
+			}
+			fmt.Fprintf(f, "subject: %#v,\nclipping: %#v\n,", c.subject, c.clipping)
+			f.Close()
+			panic("polyclip.compute: infinite loop. " +
+				"Writing geometries to file polyclipError.log. " +
+				"Please report this issue at github.com/ctessum/polyclip-go.")
+		}
+		i++
+
 		var prev, next *endpoint
 		e := c.eventQueue.dequeue()
-		_DBG(func() { fmt.Printf("\nProcess event: (of %d)\n%v\n", len(c.eventQueue.elements)+1, *e) })
+		_DBG(func() { fmt.Printf("\nProcess event: (%d of %d)\n%v\n", i, len(c.eventQueue.elements)+1, *e) })
 
 		// optimization 1
 		switch {
@@ -190,7 +205,7 @@ func (c *clipper) compute(operation Op) Polygon {
 			}
 
 			_DBG(func() {
-				fmt.Println("Status line after insertion: ")
+				fmt.Println("Status line after left insertion: ")
 				for _, e := range S {
 					fmt.Println(*e)
 				}
@@ -278,13 +293,20 @@ func (c *clipper) compute(operation Op) Polygon {
 	return connector.toPolygon()
 }
 
+var nanPoint Point
+
+func init() {
+	nanPoint = Point{X: math.NaN(), Y: math.NaN()}
+}
+
 func findIntersection(seg0, seg1 segment) (int, Point, Point) {
-	var pi0, pi1 Point
+	pi0 := nanPoint
+	pi1 := nanPoint
 	p0 := seg0.start
 	d0 := Point{seg0.end.X - p0.X, seg0.end.Y - p0.Y}
 	p1 := seg1.start
 	d1 := Point{seg1.end.X - p1.X, seg1.end.Y - p1.Y}
-	sqrEpsilon := 1e-7 // was 1e-3 earlier
+	sqrEpsilon := 0. // was 1e-3 earlier
 	E := Point{p1.X - p0.X, p1.Y - p0.Y}
 	kross := d0.X*d1.Y - d0.Y*d1.X
 	sqrKross := kross * kross
@@ -299,7 +321,7 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 		}
 		t := (E.X*d0.Y - E.Y*d0.X) / kross
 		if t < 0 || t > 1 {
-			return 0, Point{}, Point{}
+			return 0, nanPoint, nanPoint
 		}
 		// intersection of lines is a point an each segment [MC: ?]
 		pi0.X = p0.X + s*d0.X
@@ -307,7 +329,7 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 
 		// [MC: commented fragment removed]
 
-		return 1, pi0, pi1
+		return 1, pi0, nanPoint
 	}
 
 	// lines of the segments are parallel
@@ -316,7 +338,7 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 	sqrKross = kross * kross
 	if sqrKross > sqrEpsilon*sqrLen0*sqrLenE {
 		// lines of the segment are different
-		return 0, pi0, pi1
+		return 0, nanPoint, nanPoint
 	}
 
 	// Lines of the segment are the same. Need to test for overlap of segments.
@@ -326,7 +348,7 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 	s1 := s0 + (d0.X*d1.X+d0.Y*d1.Y)/sqrLen0
 	smin := math.Min(s0, s1)
 	smax := math.Max(s0, s1)
-	w := make([]float64, 0)
+	w := make([]float64, 0, 2)
 	imax := findIntersection2(0.0, 1.0, smin, smax, &w)
 
 	if imax > 0 {
@@ -405,10 +427,10 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 		return
 	}
 
-	// The line segments overlap
-	sortedEvents := make([]*endpoint, 0)
+	// The line segments overlap and belong to different polygons
+	sortedEvents := make([]*endpoint, 0, 4)
 	switch {
-	case e1.p.Equals(e2.p):
+	case e1.p.Equals(e2.p) || e1.p.Equals(e2.other.p):
 		sortedEvents = append(sortedEvents, nil) // WTF [MC: WTF]
 	case endpointLess(e1, e2):
 		sortedEvents = append(sortedEvents, e2, e1)
@@ -417,7 +439,7 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 	}
 
 	switch {
-	case e1.other.p.Equals(e2.other.p):
+	case e1.other.p.Equals(e2.other.p) || e1.other.p.Equals(e2.p):
 		sortedEvents = append(sortedEvents, nil)
 	case endpointLess(e1.other, e2.other):
 		sortedEvents = append(sortedEvents, e2.other, e1.other)
@@ -500,11 +522,59 @@ func (c *clipper) divideSegment(e *endpoint, p Point) {
 	c.eventQueue.enqueue(r)
 }
 
-func addProcessedSegment(q *eventQueue, segment segment, polyType polygonType) {
-	if segment.start.Equals(segment.end) {
-		// Possible degenerate condition
+type empty struct{}
+
+// a polygonGraph holds the points of a polygon in a graph struct.
+// The index of the first map is the starting point of each segment
+// in the polygon and the index of the second map is the ending point
+// of each segment.
+type polygonGraph map[Point]map[Point]empty
+
+// addToGraph adds the segments of the polygon to the graph in a
+// way that ensures the same segment is not included twice in the
+// polygon.
+func addToGraph(g *polygonGraph, seg segment) {
+	if seg.start.Equals(seg.end) {
+		// The starting and ending points are the same, so this is
+		// not in fact a segment.
 		return
 	}
+
+	if _, ok := (*g)[seg.end][seg.start]; ok {
+		// This polygonGraph already has a segment end -> start, adding
+		// start -> end would make the polygon degenerate, so we delete both.
+		delete((*g)[seg.end], seg.start)
+		return
+	}
+
+	if _, ok := (*g)[seg.start]; !ok {
+		(*g)[seg.start] = make(map[Point]empty)
+	}
+
+	// Add the segment.
+	(*g)[seg.start][seg.end] = empty{}
+}
+
+// addPolygonToQueue	adds p to the event queue, returning the number of
+// segments that were added.
+func addPolygonToQueue(q *eventQueue, p Polygon, polyType polygonType) int {
+	g := make(polygonGraph)
+	for _, cont := range p {
+		for i := range cont {
+			addToGraph(&g, cont.segment(i))
+		}
+	}
+	numSegments := 0
+	for start, gg := range g {
+		for end := range gg {
+			addProcessedSegment(q, segment{start: start, end: end}, polyType)
+			numSegments++
+		}
+	}
+	return numSegments
+}
+
+func addProcessedSegment(q *eventQueue, segment segment, polyType polygonType) {
 
 	e1 := &endpoint{p: segment.start, left: true, polygonType: polyType}
 	e2 := &endpoint{p: segment.end, left: true, polygonType: polyType, other: e1}
@@ -522,7 +592,7 @@ func addProcessedSegment(q *eventQueue, segment segment, polyType polygonType) {
 		e1.left = false
 	}
 
-	// Pushing it so the que is sorted from left to right, with object on the left having the highest priority
+	// Pushing it so the queue is sorted from left to right, with object on the left having the highest priority
 	q.enqueue(e1)
 	q.enqueue(e2)
 }
