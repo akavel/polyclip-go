@@ -115,11 +115,8 @@ func (c *clipper) compute(operation Op) Polygon {
 
 	//  From the manuscript, the cycle is executed
 	// n + 4k times, where n is the number of segments and k is the number of
-	// intersections. I believe the maximum k would be about n^2, but
-	// we assume it here to be 2*n. This may not be the absolute maximum
-	// number of events, but it is not likely that there would be more intersections
-	// than this in a real polygon.
-	maxPossibleEvents := numSegments * 9
+	// intersections. I believe the maximum k would be about n^2.
+	maxPossibleEvents := numSegments + 4*numSegments*numSegments
 
 	for !c.eventQueue.IsEmpty() {
 
