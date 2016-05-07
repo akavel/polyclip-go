@@ -99,11 +99,11 @@ func TestBug3(t *T) {
 				{{1, 2}, {2, 3}, {2, 2}}},
 			result: Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 1}}},
 		},
-		// "union" with effectively empty polygon (wholly self-intersecting)
+		// "union" wholly self-intersecting polygon
 		{
 			subject:  Polygon{{{1, 2}, {2, 2}, {2, 1}}},
 			clipping: Polygon{{{1, 2}, {2, 2}, {2, 3}, {1, 2}, {2, 2}, {2, 3}}},
-			result:   Polygon{{{1, 2}, {2, 2}, {2, 1}}},
+			result:   Polygon{{{1, 2}, {2, 3}, {2, 2}, {2, 1}}},
 		},
 	}
 	for i, c := range cases {
