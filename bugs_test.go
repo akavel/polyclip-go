@@ -559,3 +559,45 @@ func TestBug5(t *T) {
 		},
 	}.verify(t)
 }
+
+func TestSelfIntersect(t *testing.T) {
+	rect1 := polyclip.Polygon{{{0, 0}, {1, 0}, {1, 1}, {0, 1}}, {{1, 0}, {2, 0}, {2, 1}, {1, 1}}}
+	rect2 := polyclip.Polygon{{{0, 0.25}, {3, 0.25}, {3, 0.75}, {0, 0.75}}}
+
+	expected := []struct {
+		name   string
+		op     polyclip.Op
+		result polyclip.Polygon
+	}{
+		{
+			"union",
+			polyclip.UNION,
+			polyclip.Polygon{{{0, 0}, {1, 0}, {2, 0}, {2, 0.25}, {3, 0.25}, {3, 0.75}, {2, 0.75}, {2, 1}, {1, 1}, {0, 1}, {0, 0.75}, {0, 0.25}}},
+		},
+		{
+			"intersection",
+			polyclip.INTERSECTION,
+			polyclip.Polygon{{{0, 0.25}, {2, 0.25}, {2, 0.75}, {0, 0.75}}},
+		},
+		{
+			"difference",
+			polyclip.DIFFERENCE,
+			polyclip.Polygon{{{0, 0}, {1, 0}, {2, 0}, {2, 0.25}, {0, 0.25}}, {{0, 0.75}, {2, 0.75}, {2, 1}, {1, 1}, {0, 1}}},
+		},
+		{
+			"xor",
+			polyclip.XOR,
+			// TODO: This one is a little weird.  It probably shouldn't be self-intersecting.
+			polyclip.Polygon{{{0, 0}, {1, 0}, {2, 0}, {2, 0.25}, {0, 0.25}}, {{0, 0.75}, {2, 0.75}, {2, 0.25}, {3, 0.25}, {3, 0.75}, {2, 0.75}, {2, 1}, {1, 1}, {0, 1}}},
+		},
+	}
+
+	for _, e := range expected {
+		t.Run(e.name, func(t *testing.T) {
+			result := rect1.Construct(e.op, rect2)
+			if dump(result) != dump(e.result) {
+				t.Errorf("case %d expected:\n%v\ngot:\n%v", e.op, dump(e.result), dump(result))
+			}
+		})
+	}
+}
