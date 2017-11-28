@@ -28,6 +28,7 @@ package polyclip
 type connector struct {
 	openPolys   []chain
 	closedPolys []chain
+	operation   Op
 }
 
 func (c *connector) add(s segment) {
@@ -73,12 +74,22 @@ func (c *connector) add(s segment) {
 
 func (c *connector) toPolygon() Polygon {
 	poly := Polygon{}
-	for _, chain := range c.closedPolys {
-		con := Contour{}
-		for _, p := range chain.points {
-			con.Add(p)
+	if c.operation == CLIPLINE {
+		for _, chain := range c.openPolys {
+			con := Contour{}
+			for _, p := range chain.points {
+				con.Add(p)
+			}
+			poly.Add(con)
 		}
-		poly.Add(con)
+	} else {
+		for _, chain := range c.closedPolys {
+			con := Contour{}
+			for _, p := range chain.points {
+				con.Add(p)
+			}
+			poly.Add(con)
+		}
 	}
 	return poly
 }
