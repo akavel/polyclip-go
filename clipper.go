@@ -284,7 +284,7 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 	d0 := Point{seg0.end.X - p0.X, seg0.end.Y - p0.Y}
 	p1 := seg1.start
 	d1 := Point{seg1.end.X - p1.X, seg1.end.Y - p1.Y}
-	sqrEpsilon := 1e-7 // was 1e-3 earlier
+	sqrEpsilon := 1e-15 // was originally 1e-3, which is very prone to false positives
 	E := Point{p1.X - p0.X, p1.Y - p0.Y}
 	kross := d0.X*d1.Y - d0.Y*d1.X
 	sqrKross := kross * kross
@@ -384,8 +384,13 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 		return
 	}
 
-	if numIntersections == 1 && (e1.p.Equals(e2.p) || e1.other.p.Equals(e2.other.p)) {
-		return // the line segments intersect at an endpoint of both line segments
+	if numIntersections == 1 {
+		if e1.p.Equals(e2.p) || e1.other.p.Equals(e2.other.p) {
+			return // the line segments intersect at an endpoint of both line segments
+		} else if !isValidSingleIntersection(e1, e2, ip1) {
+			_DBG(func() { fmt.Printf("Dropping invalid intersection %v between %v and %v\n", ip1, e1, e2) })
+			return
+		}
 	}
 
 	//if numIntersections == 2 && e1.p.Equals(e2.p) {
@@ -486,6 +491,12 @@ func (c *clipper) divideSegment(e *endpoint, p Point) {
 	r := &endpoint{p: p, left: false, polygonType: e.polygonType, other: e, edgeType: e.edgeType}
 	// "Left event" of the "right line segment" resulting from dividing e (the line segment associated to e)
 	l := &endpoint{p: p, left: true, polygonType: e.polygonType, other: e.other, edgeType: e.other.edgeType}
+
+	// Discard segments of the wrong-direction (including zero-length). See isValidSingleIntersection() for reasoning.
+	if !l.isValidDirection() || !r.isValidDirection() {
+		_DBG(func() { fmt.Printf("Dropping invalid division of %v at %v:\n - %v\n - %v\n", *e, p, l, r) })
+		return
+	}
 
 	if endpointLess(l, e.other) { // avoid a rounding error. The left event would be processed after the right event
 		// println("Oops")

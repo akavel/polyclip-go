@@ -78,3 +78,52 @@ func (se *endpoint) below(x Point) bool {
 func (se *endpoint) above(x Point) bool {
 	return !se.below(x)
 }
+
+// leftRight() returns the left and right endpoints, in that order.
+func (se *endpoint) leftRight() (Point, Point) {
+	if se.left {
+		return se.p, se.other.p
+	}
+	return se.other.p, se.p
+}
+
+// isValid() is true if the segment has the correct direction.
+// Note that segments of zero length have no direction and are thus not considered valid.
+func (se *endpoint) isValidDirection() bool {
+	lp, rp := se.leftRight()
+	return lp.X < rp.X || (lp.X == rp.X && lp.Y < rp.Y)
+}
+
+// Floating point imprecision in findIntersection() can create "non-reductive"
+// divisions that result in infinite recursion.
+//
+// One class of non-reductive divisions can be detected at segment division time;
+// divisions that result in segments going in the wrong direction
+// (including zero-length segments, which have no direction) are non-reductive.
+// This is detected by checking if endpoint.isValidDirection() in divideSegment().
+//
+// The other class of non-reductive divisions does create "valid" segments; one
+// being infinitesimally small, and the other which recurses into a similar
+// non-reductive division. This happens when the left or right endpoints of the
+// two segments are very close but not equal, the problematic division for which manifests
+// as an intersection point falling outside of the endpoints on a horizontal or vertical line.
+//
+// Note that theoretically, both classes of non-reductive division could be detected by
+// comparing the length of the original segment against the length of the resulting segments,
+// the latter of which should always be less than the former. Unfortunately, computation of
+// segment length is subject to floating point imprecision and can introduce false positives.
+// The rationale behind the current approach (isValidDirection and isValidSingleIntersection)
+// is to rely only on boolean comparisons.
+func isValidSingleIntersection(e1, e2 *endpoint, ip Point) bool {
+	switch {
+	case e1.p.X == ip.X && e2.p.X == ip.X: // e1.p, ip, e2.p on a vertical line
+		return (ip.Y-e1.p.Y > 0) != (ip.Y-e2.p.Y > 0) // ip is above (or below) both e1.p and e2.p
+	case e1.p.Y == ip.Y && e2.p.Y == ip.Y: // e1.p, ip, e2.p on a horizontal line
+		return (ip.X-e1.p.X > 0) != (ip.X-e2.p.X > 0) // ip is to the left (or right) of both e1.p and e2.p
+	case e1.other.p.X == ip.X && e2.other.p.X == ip.X: // e1.other.p, ip, e2.other.p on a vertical line
+		return (ip.Y-e1.other.p.Y > 0) != (ip.Y-e2.other.p.Y > 0) // ip is above (or below) both e1.other.p and e2.other.p
+	case e1.other.p.Y == ip.Y && e2.other.p.Y == ip.Y: // e1.other.p, ip, e2.other.p on a horizontal line
+		return (ip.X-e1.other.p.X > 0) != (ip.X-e2.other.p.X > 0) // ip is to the left (or right) of both e1.other.p and e2.other.p
+	}
+	return true
+}
