@@ -278,7 +278,7 @@ func (c *clipper) compute(operation Op) Polygon {
 	return connector.toPolygon()
 }
 
-func findIntersection(seg0, seg1 segment) (int, Point, Point) {
+func findIntersection(seg0, seg1 segment, tryBothDirections bool) (int, Point, Point) {
 	var pi0, pi1 Point
 	p0 := seg0.start
 	d0 := Point{seg0.end.X - p0.X, seg0.end.Y - p0.Y}
@@ -332,13 +332,18 @@ func findIntersection(seg0, seg1 segment) (int, Point, Point) {
 	if imax > 0 {
 		pi0.X = p0.X + w[0]*d0.X
 		pi0.Y = p0.Y + w[0]*d0.Y
+	}
+	// For same-segment scenarios, this should be the case.
+	if imax > 1 {
+		pi1.X = p0.X + w[1]*d0.X
+		pi1.Y = p0.Y + w[1]*d0.Y
 
-		// [MC: commented fragment removed]
-
-		if imax > 1 {
-			pi1.X = p0.X + w[1]*d0.X
-			pi1.Y = p0.Y + w[1]*d0.Y
+	} else if tryBothDirections {
+		// However, findIntersection() is not symmetric and sometimes fails in one direction. Try the other.
+		if otherImax, otherPi0, otherPi1 := findIntersection(seg1, seg0, false); otherImax > imax {
+			return otherImax, otherPi0, otherPi1
 		}
+		_DBG(func() { fmt.Printf("WARNING: Could not find overlap in segments %v, %v\n", seg0, seg1) })
 	}
 
 	return imax, pi0, pi1
@@ -378,7 +383,7 @@ func findIntersection2(u0, u1, v0, v1 float64, w *[]float64) int {
 func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 	// [MC]: commented fragment removed
 
-	numIntersections, ip1, _ := findIntersection(e1.segment(), e2.segment())
+	numIntersections, ip1, _ := findIntersection(e1.segment(), e2.segment(), true)
 
 	if numIntersections == 0 {
 		return
