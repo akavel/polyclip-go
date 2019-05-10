@@ -389,6 +389,18 @@ func findIntersection2(u0, u1, v0, v1 float64, w *[]float64) int {
 	return 2
 }
 
+// snaps the [pt] to one of [toPts] if they are equal within a tolerance factor.
+// If none of the points are within the tolerance, the original pt is returned.
+func snap(pt Point, toPts ...Point) Point {
+	const tolerance = 3e-14
+	for _, p := range toPts {
+		if pt.equalWithin(p, tolerance) {
+			return p
+		}
+	}
+	return pt
+}
+
 // Returns the endpoints that were divided.
 func (c *clipper) possibleIntersection(e1, e2 *endpoint) []*endpoint {
 	numIntersections, ip1, _ := findIntersection(e1.segment(), e2.segment(), true)
@@ -396,6 +408,10 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) []*endpoint {
 	if numIntersections == 0 {
 		return nil
 	}
+
+	// Adjust for floating point imprecision when intersections are created at endpoints, which
+	// otherwise has the tendency to corrupt the original polygons with new, almost-parallel segments.
+	ip1 = snap(ip1, e1.p, e2.p, e1.other.p, e2.other.p)
 
 	if numIntersections == 1 {
 		switch {

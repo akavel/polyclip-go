@@ -27,6 +27,7 @@ import (
 )
 
 func verify(t *T, cond bool, format string, args ...interface{}) {
+	t.Helper()
 	if !cond {
 		t.Errorf(format, args...)
 	}
@@ -41,6 +42,12 @@ func TestPoint(t *T) {
 	verify(t, Point{0, 0}.Equals(Point{0, 0}), "Expected equal points")
 	verify(t, Point{1, 2}.Equals(Point{1, 2}), "Expected equal points")
 	verify(t, circa(Point{3, 4}.Length(), 5), "Expected length 5")
+}
+
+func TestEqualWithin(t *T) {
+	p := Point{0, 0}
+	verify(t, !p.equalWithin(Point{0, 1e-9}, 1e-10), "Expected not equal")
+	verify(t, p.equalWithin(Point{1e-11, 1e-11}, 1e-10), "Expected equal")
 }
 
 func rect(x, y, w, h float64) Rectangle {
