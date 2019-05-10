@@ -202,8 +202,17 @@ func (c *clipper) compute(operation Op) Polygon {
 			}
 			// Process a possible intersection between "e" and its previous neighbor in S
 			if prev != nil {
-				c.possibleIntersection(prev, e)
-				//c.possibleIntersection(&e, prev)
+				divided := c.possibleIntersection(prev, e)
+				// If [prev] was divided, the context (sweep line S) for [e] may have changed,
+				// altering what e.inout and e.inside should be. [e] must thus be reenqueued to
+				// recompute e.inout and e.inside.
+				//
+				// (This should not be done if [e] was also divided; in that case
+				//  the divided segments are already enqueued).
+				if len(divided) == 1 && divided[0] == prev {
+					S.remove(e)
+					c.eventQueue.enqueue(e)
+				}
 			}
 		} else { // the line segment must be removed from S
 			otherPos := -1
@@ -380,39 +389,35 @@ func findIntersection2(u0, u1, v0, v1 float64, w *[]float64) int {
 	return 2
 }
 
-func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
-	// [MC]: commented fragment removed
-
+// Returns the endpoints that were divided.
+func (c *clipper) possibleIntersection(e1, e2 *endpoint) []*endpoint {
 	numIntersections, ip1, _ := findIntersection(e1.segment(), e2.segment(), true)
 
 	if numIntersections == 0 {
-		return
+		return nil
 	}
 
 	if numIntersections == 1 {
-		if e1.p.Equals(e2.p) || e1.other.p.Equals(e2.other.p) {
-			return // the line segments intersect at an endpoint of both line segments
-		} else if !isValidSingleIntersection(e1, e2, ip1) {
+		switch {
+		case e1.p.Equals(e2.p) || e1.other.p.Equals(e2.other.p):
+			return nil // the line segments intersect at an endpoint of both line segments
+		case !isValidSingleIntersection(e1, e2, ip1):
 			_DBG(func() { fmt.Printf("Dropping invalid intersection %v between %v and %v\n", ip1, e1, e2) })
-			return
+			return nil
+		case e1.p.Equals(ip1) || e1.other.p.Equals(ip1): // e1 divides e2
+			return []*endpoint{c.divideSegment(e2, ip1)}
+		case e2.p.Equals(ip1) || e2.other.p.Equals(ip1): // e2 divides e1
+			return []*endpoint{c.divideSegment(e1, ip1)}
+		default: // e1 and e2 divide each other
+			return []*endpoint{
+				c.divideSegment(e1, ip1),
+				c.divideSegment(e2, ip1),
+			}
 		}
 	}
 
-	//if numIntersections == 2 && e1.p.Equals(e2.p) {
 	if numIntersections == 2 && e1.polygonType == e2.polygonType {
-		return // the line segments overlap, but they belong to the same polygon
-	}
-
-	if numIntersections == 1 {
-		if !e1.p.Equals(ip1) && !e1.other.p.Equals(ip1) {
-			// if ip1 is not an endpoint of the line segment associated to e1 then divide "e1"
-			c.divideSegment(e1, ip1)
-		}
-		if !e2.p.Equals(ip1) && !e2.other.p.Equals(ip1) {
-			// if ip1 is not an endpoint of the line segment associated to e2 then divide "e2"
-			c.divideSegment(e2, ip1)
-		}
-		return
+		return nil // the line segments overlap, but they belong to the same polygon
 	}
 
 	// The line segments overlap
@@ -442,7 +447,7 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 		} else {
 			e2.edgeType, e2.other.edgeType = _EDGE_DIFFERENT_TRANSITION, _EDGE_DIFFERENT_TRANSITION
 		}
-		return
+		return nil
 	}
 
 	if len(sortedEvents) == 3 { // the line segments share an endpoint
@@ -460,11 +465,10 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 			sortedEvents[idx].other.edgeType = _EDGE_DIFFERENT_TRANSITION
 		}
 		if sortedEvents[0] != nil {
-			c.divideSegment(sortedEvents[0], sortedEvents[1].p)
+			return []*endpoint{c.divideSegment(sortedEvents[0], sortedEvents[1].p)}
 		} else {
-			c.divideSegment(sortedEvents[2].other, sortedEvents[1].p)
+			return []*endpoint{c.divideSegment(sortedEvents[2].other, sortedEvents[1].p)}
 		}
-		return
 	}
 
 	if sortedEvents[0] != sortedEvents[3].other {
@@ -475,9 +479,10 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 		} else {
 			sortedEvents[2].edgeType = _EDGE_DIFFERENT_TRANSITION
 		}
-		c.divideSegment(sortedEvents[0], sortedEvents[1].p)
-		c.divideSegment(sortedEvents[1], sortedEvents[2].p)
-		return
+		return []*endpoint{
+			c.divideSegment(sortedEvents[0], sortedEvents[1].p),
+			c.divideSegment(sortedEvents[1], sortedEvents[2].p),
+		}
 	}
 
 	// one line segment includes the other one
@@ -488,10 +493,11 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) {
 	} else {
 		sortedEvents[3].other.edgeType = _EDGE_DIFFERENT_TRANSITION
 	}
-	c.divideSegment(sortedEvents[3].other, sortedEvents[2].p)
+	return []*endpoint{c.divideSegment(sortedEvents[3].other, sortedEvents[2].p)}
 }
 
-func (c *clipper) divideSegment(e *endpoint, p Point) {
+// Returns the original endpoint if successfully divided, otherwise nil.
+func (c *clipper) divideSegment(e *endpoint, p Point) *endpoint {
 	// "Right event" of the "left line segment" resulting from dividing e (the line segment associated to e)
 	r := &endpoint{p: p, left: false, polygonType: e.polygonType, other: e, edgeType: e.edgeType}
 	// "Left event" of the "right line segment" resulting from dividing e (the line segment associated to e)
@@ -500,7 +506,7 @@ func (c *clipper) divideSegment(e *endpoint, p Point) {
 	// Discard segments of the wrong-direction (including zero-length). See isValidSingleIntersection() for reasoning.
 	if !l.isValidDirection() || !r.isValidDirection() {
 		_DBG(func() { fmt.Printf("Dropping invalid division of %v at %v:\n - %v\n - %v\n", *e, p, l, r) })
-		return
+		return nil
 	}
 
 	if endpointLess(l, e.other) { // avoid a rounding error. The left event would be processed after the right event
@@ -514,6 +520,7 @@ func (c *clipper) divideSegment(e *endpoint, p Point) {
 
 	c.eventQueue.enqueue(l)
 	c.eventQueue.enqueue(r)
+	return e
 }
 
 func addProcessedSegment(q *eventQueue, segment segment, polyType polygonType) {
