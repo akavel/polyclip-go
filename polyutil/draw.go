@@ -20,7 +20,7 @@
 // Package polyutil contains very simple utility functions for drawing and (de)serialization of polygons.
 package polyutil
 
-import "github.com/akavel/polyclip-go"
+import "github.com/ctessum/polyclip-go"
 
 // Putpixel describes a function expected to draw a point on a bitmap at (x, y) coordinates.
 type Putpixel func(x, y int)
