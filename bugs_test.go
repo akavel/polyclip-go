@@ -601,3 +601,47 @@ func TestSelfIntersect(t *testing.T) {
 		})
 	}
 }
+
+// Bug test from b4c12673bc80394c472b18f168a042f904ec948.
+func TestDifference_bug(t *testing.T) {
+	p1 := polyclip.Polygon{
+		polyclip.Contour{
+			polyclip.Point{X: 99, Y: 164}, polyclip.Point{X: 114, Y: 108},
+			polyclip.Point{X: 121, Y: 164},
+		},
+	}
+
+	p2 := polyclip.Polygon{polyclip.Contour{
+		polyclip.Point{X: 114, Y: 0}, polyclip.Point{X: 161, Y: 0},
+		polyclip.Point{X: 114, Y: 168},
+	}}
+	want := polyclip.Polygon{polyclip.Contour{{114, 168}, {114, 164}, {115.11904761904762, 164}}}
+	result := p2.Construct(polyclip.DIFFERENCE, p1)
+	if dump(want) != dump(result) {
+		t.Errorf("expected:\n%v\ngot:\n%v", dump(want), dump(result))
+	}
+}
+
+// Bug test from 6614925d6d7087b7afcd4c55571554f67efd2ec3
+func TestInfiniteLoopBug(t *testing.T) {
+	subject := polyclip.Polygon{polyclip.Contour{
+		polyclip.Point{X: 426694.6365274183, Y: -668547.1611580737},
+		polyclip.Point{X: 426714.57523030025, Y: -668548.9238652373},
+		polyclip.Point{X: 426745.39648089616, Y: -668550.4651249861},
+	}}
+	clipping := polyclip.Polygon{polyclip.Contour{
+		polyclip.Point{X: 426714.5752302991, Y: -668548.9238652373},
+		polyclip.Point{X: 426744.63718662335, Y: -668550.0591896093},
+		polyclip.Point{X: 426745.3964821229, Y: -668550.4652243527},
+	}}
+
+	want := polyclip.Polygon{polyclip.Contour{
+		{426694.6365274183, -668547.1611580737}, {426731.5895193888, -668549.5664294426},
+		{426745.39627072256, -668550.4651113059}, {426745.3962772624, -668550.4651148032},
+		{426714.57523030025, -668548.9238652373},
+	}}
+	result := subject.Construct(polyclip.DIFFERENCE, clipping)
+	if dump(want) != dump(result) {
+		t.Errorf("expected:\n%v\ngot:\n%v", dump(want), dump(result))
+	}
+}
