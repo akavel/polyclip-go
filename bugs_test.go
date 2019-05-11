@@ -615,7 +615,10 @@ func TestDifference_bug(t *testing.T) {
 		polyclip.Point{X: 114, Y: 0}, polyclip.Point{X: 161, Y: 0},
 		polyclip.Point{X: 114, Y: 168},
 	}}
-	want := polyclip.Polygon{polyclip.Contour{{114, 168}, {114, 164}, {115.11904761904762, 164}}}
+	want := polyclip.Polygon{
+		polyclip.Contour{{114, 168}, {114, 164}, {115.11904761904762, 164}},
+		polyclip.Contour{{114, 0}, {161, 0}, {119.18382352941177, 149.47058823529412}, {114, 108}},
+	}
 	result := p2.Construct(polyclip.DIFFERENCE, p1)
 	if dump(want) != dump(result) {
 		t.Errorf("expected:\n%v\ngot:\n%v", dump(want), dump(result))
