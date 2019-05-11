@@ -170,6 +170,15 @@ func (c Contour) Clone() Contour {
 	return append([]Point{}, c...)
 }
 
+func (c Contour) Len() int {
+	return len(c)
+}
+
+func (c Contour) XY(i int) (x, y float64) {
+	p := c[i]
+	return p.X, p.Y
+}
+
 // Polygon is carved out of a 2D plane by a set of (possibly disjoint) contours.
 // It can thus contain holes, and can be self-intersecting.
 type Polygon []Contour
