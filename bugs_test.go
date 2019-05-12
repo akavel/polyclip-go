@@ -69,11 +69,13 @@ type testCases []testCase
 func (cases testCases) verify(t *testing.T) {
 	t.Helper()
 	for i, c := range cases {
-		result := dump(c.subject.Construct(c.op, c.clipping))
-		if result != dump(c.result) {
-			t.Errorf("case %d: %v\nsubject:  %v\nclipping: %v\nexpected: %v\ngot:      %v",
-				i, c.op, c.subject, c.clipping, c.result, result)
-		}
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			result := dump(c.subject.Construct(c.op, c.clipping))
+			if result != dump(c.result) {
+				t.Errorf("case %d: %v\nsubject:  %v\nclipping: %v\nexpected: %v\ngot:      %v",
+					i, c.op, c.subject, c.clipping, c.result, result)
+			}
+		})
 	}
 }
 
@@ -82,11 +84,11 @@ func TestBug3(t *testing.T) {
 		// original reported github issue #3
 		{
 			op:      polyclip.UNION,
-			subject: polyclip.Polygon{{{1, 1}, {1, 2}, {2, 2}, {2, 1}}},
+			subject: polyclip.Polygon{{{1, 1}, {1, 2}, {2, 2}, {2, 1}}}.Simplify(),
 			clipping: polyclip.Polygon{
 				{{2, 1}, {2, 2}, {3, 2}, {3, 1}},
 				{{1, 2}, {1, 3}, {2, 3}, {2, 2}},
-				{{2, 2}, {2, 3}, {3, 3}, {3, 2}}},
+				{{2, 2}, {2, 3}, {3, 3}, {3, 2}}}.Simplify(),
 			result: polyclip.Polygon{{
 				{1, 1}, {2, 1}, {3, 1},
 				{3, 2}, {3, 3},
@@ -100,38 +102,38 @@ func TestBug3(t *testing.T) {
 			clipping: polyclip.Polygon{
 				{{2, 1}, {2, 2}, {3, 2}},
 				{{1, 2}, {2, 3}, {2, 2}},
-				{{2, 2}, {2, 3}, {3, 2}}},
-			result: polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 1}}},
+				{{2, 2}, {2, 3}, {3, 2}}}.Simplify(),
+			result: polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 1}}}.Simplify(),
 		},
 		{
 			op:      polyclip.UNION,
-			subject: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}},
+			subject: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}}.Simplify(),
 			clipping: polyclip.Polygon{
 				{{1, 2}, {2, 3}, {2, 2}},
-				{{2, 2}, {2, 3}, {3, 2}}},
+				{{2, 2}, {2, 3}, {3, 2}}}.Simplify(),
 			result: polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 2}, {2, 1}}},
 		},
 		// another variation, now with single degenerated curve
 		{
 			op:      polyclip.UNION,
-			subject: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}},
+			subject: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}}.Simplify(),
 			clipping: polyclip.Polygon{
-				{{1, 2}, {2, 3}, {2, 2}, {2, 3}, {3, 2}}},
+				{{1, 2}, {2, 3}, {2, 2}, {2, 3}, {3, 2}}}.Simplify(),
 			result: polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 2}, {2, 1}}},
 		},
 		{
 			op:      polyclip.UNION,
-			subject: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}},
+			subject: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}}.Simplify(),
 			clipping: polyclip.Polygon{
 				{{2, 1}, {2, 2}, {2, 3}, {3, 2}},
-				{{1, 2}, {2, 3}, {2, 2}}},
+				{{1, 2}, {2, 3}, {2, 2}}}.Simplify(),
 			result: polyclip.Polygon{{{1, 2}, {2, 3}, {3, 2}, {2, 1}}},
 		},
 		// "union" with effectively empty polygon (wholly self-intersecting)
 		{
 			op:       polyclip.UNION,
 			subject:  polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}},
-			clipping: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 3}, {1, 2}, {2, 2}, {2, 3}}},
+			clipping: polyclip.Polygon{{{1, 2}, {2, 2}, {2, 3}, {1, 2}, {2, 2}, {2, 3}}}.Simplify(),
 			result:   polyclip.Polygon{{{1, 2}, {2, 2}, {2, 1}}},
 		},
 	}.verify(t)
@@ -594,7 +596,7 @@ func TestSelfIntersect(t *testing.T) {
 
 	for _, e := range expected {
 		t.Run(e.name, func(t *testing.T) {
-			result := rect1.Construct(e.op, rect2)
+			result := rect1.Simplify().Construct(e.op, rect2.Simplify())
 			if dump(result) != dump(e.result) {
 				t.Errorf("case %d expected:\n%v\ngot:\n%v", e.op, dump(e.result), dump(result))
 			}

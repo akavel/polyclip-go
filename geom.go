@@ -235,6 +235,8 @@ const (
 // The paper describes the algorithm as performing in time O((n+k) log n),
 // where n is number of all edges of all polygons in operation, and
 // k is number of intersections of all polygon edges.
+// This function is not designed to handle self-intersecting polygons;
+// Remove self-intersections first using the Simplify function.
 func (p Polygon) Construct(operation Op, clipping Polygon) Polygon {
 	c := clipper{
 		subject:  p,
