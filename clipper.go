@@ -196,23 +196,32 @@ func (c *clipper) compute(operation Op) Polygon {
 				}
 			})
 
+			divided := make(map[*endpoint]bool)
 			// Process a possible intersection between "e" and its next neighbor in S
 			if next != nil {
-				c.possibleIntersection(e, next)
+				for _, seg := range c.possibleIntersection(e, next) {
+					if seg != nil {
+						divided[seg] = true
+					}
+				}
 			}
 			// Process a possible intersection between "e" and its previous neighbor in S
 			if prev != nil {
-				divided := c.possibleIntersection(prev, e)
-				// If [prev] was divided, the context (sweep line S) for [e] may have changed,
-				// altering what e.inout and e.inside should be. [e] must thus be reenqueued to
-				// recompute e.inout and e.inside.
-				//
-				// (This should not be done if [e] was also divided; in that case
-				//  the divided segments are already enqueued).
-				if len(divided) == 1 && divided[0] == prev {
-					S.remove(e)
-					c.eventQueue.enqueue(e)
+				for _, seg := range c.possibleIntersection(prev, e) {
+					if seg != nil {
+						divided[seg] = true
+					}
 				}
+			}
+			// If [prev] or [next] was divided but [e] was not, the context (sweep line S)
+			// for [e] may have changed, altering what e.inout and e.inside should be.
+			// [e] must thus be reenqueued to recompute e.inout and e.inside.
+			//
+			// (This should not be done if [e] was also divided; in that case
+			//  the divided segments are already enqueued).
+			if len(divided) > 0 && !divided[e] {
+				S.remove(e)
+				c.eventQueue.enqueue(e)
 			}
 		} else { // the line segment must be removed from S
 			otherPos := -1
@@ -503,13 +512,16 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) []*endpoint {
 
 	// one line segment includes the other one
 	sortedEvents[1].edgeType, sortedEvents[1].other.edgeType = _EDGE_NON_CONTRIBUTING, _EDGE_NON_CONTRIBUTING
-	c.divideSegment(sortedEvents[0], sortedEvents[1].p)
+	firstDivided := c.divideSegment(sortedEvents[0], sortedEvents[1].p)
 	if e1.inout == e2.inout {
 		sortedEvents[3].other.edgeType = _EDGE_SAME_TRANSITION
 	} else {
 		sortedEvents[3].other.edgeType = _EDGE_DIFFERENT_TRANSITION
 	}
-	return []*endpoint{c.divideSegment(sortedEvents[3].other, sortedEvents[2].p)}
+	return []*endpoint{
+		firstDivided,
+		c.divideSegment(sortedEvents[3].other, sortedEvents[2].p),
+	}
 }
 
 // Returns the original endpoint if successfully divided, otherwise nil.
