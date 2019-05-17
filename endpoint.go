@@ -91,7 +91,7 @@ func (se *endpoint) leftRight() (Point, Point) {
 // Note that segments of zero length have no direction and are thus not considered valid.
 func (se *endpoint) isValidDirection() bool {
 	lp, rp := se.leftRight()
-	return lp.X < rp.X || (lp.X == rp.X && lp.Y < rp.Y)
+	return lp.isBefore(rp)
 }
 
 // Floating point imprecision in findIntersection() can create "non-reductive"

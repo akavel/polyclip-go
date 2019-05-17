@@ -26,6 +26,7 @@ package polyclip
 import (
 	"fmt"
 	"math"
+	"sort"
 )
 
 //func _DBG(f func()) { f() }
@@ -400,9 +401,23 @@ func findIntersection2(u0, u1, v0, v1 float64, w *[]float64) int {
 
 // snaps the [pt] to one of [toPts] if they are equal within a tolerance factor.
 // If none of the points are within the tolerance, the original pt is returned.
-func snap(pt Point, toPts ...Point) Point {
-	const tolerance = 3e-14
-	for _, p := range toPts {
+func snap(pt Point, e1, e2 *endpoint) Point {
+	pts := []Point{e1.p, e2.p, e1.other.p, e2.other.p}
+	for _, p := range pts {
+		if pt.Equals(p) { // Prefer strict equality over snapping.
+			return p
+		}
+	}
+	// Order the points in sweep-line ordering and test the middle points
+	// first (i.e. 2, 1, 0, 3) to avoid creating invalid divisions when
+	// two endpoints are within the tolerance.
+	sort.Slice(pts, func(i, j int) bool {
+		return pts[i].isBefore(pts[j])
+	})
+	pts[0], pts[2] = pts[2], pts[0]
+
+	const tolerance = 8e-14
+	for _, p := range pts {
 		if pt.equalWithin(p, tolerance) {
 			return p
 		}
@@ -414,25 +429,26 @@ func snap(pt Point, toPts ...Point) Point {
 func (c *clipper) possibleIntersection(e1, e2 *endpoint) []*endpoint {
 	numIntersections, ip1, _ := findIntersection(e1.segment(), e2.segment(), true)
 
-	if numIntersections == 0 {
+	switch {
+	case numIntersections == 0:
 		return nil
+	case numIntersections == 1 && (e1.p.Equals(e2.p) || e1.other.p.Equals(e2.other.p)):
+		return nil // the line segments intersect at an endpoint of both line segments
 	}
 
 	// Adjust for floating point imprecision when intersections are created at endpoints, which
 	// otherwise has the tendency to corrupt the original polygons with new, almost-parallel segments.
-	ip1 = snap(ip1, e1.p, e2.p, e1.other.p, e2.other.p)
+	ip1 = snap(ip1, e1, e2)
 
 	if numIntersections == 1 {
 		switch {
-		case e1.p.Equals(e2.p) || e1.other.p.Equals(e2.other.p):
-			return nil // the line segments intersect at an endpoint of both line segments
-		case !isValidSingleIntersection(e1, e2, ip1):
-			_DBG(func() { fmt.Printf("Dropping invalid intersection %v between %v and %v\n", ip1, e1, e2) })
-			return nil
 		case e1.p.Equals(ip1) || e1.other.p.Equals(ip1): // e1 divides e2
 			return []*endpoint{c.divideSegment(e2, ip1)}
 		case e2.p.Equals(ip1) || e2.other.p.Equals(ip1): // e2 divides e1
 			return []*endpoint{c.divideSegment(e1, ip1)}
+		case !isValidSingleIntersection(e1, e2, ip1):
+			_DBG(func() { fmt.Printf("Dropping invalid intersection %v between %v and %v\n", ip1, e1, e2) })
+			return nil
 		default: // e1 and e2 divide each other
 			return []*endpoint{
 				c.divideSegment(e1, ip1),
@@ -442,7 +458,12 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) []*endpoint {
 	}
 
 	if numIntersections == 2 && e1.polygonType == e2.polygonType {
-		return nil // the line segments overlap, but they belong to the same polygon
+		_DBG(func() {
+			fmt.Printf("Dropping intersection %v from overlapping edges of the same polygon %v and %v\n", ip1, e1, e2)
+		})
+		// Note: This case is technically not handled by the algorithm. The original C++ code
+		// outputs: "Sorry, edges of the same polygon overlap" and exits.
+		return nil
 	}
 
 	// The line segments overlap
