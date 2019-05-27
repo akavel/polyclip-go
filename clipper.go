@@ -91,7 +91,11 @@ func (c *clipper) compute(operation Op) Polygon {
 	// Add each segment to the eventQueue, sorted from left to right.
 	for _, cont := range c.subject {
 		for i := range cont {
-			addProcessedSegment(&c.eventQueue, cont.segment(i), _SUBJECT)
+			if !(operation == CLIPLINE && i == len(cont)-1) {
+				// Add subject segment to event queue, unless the subject is a line
+				// string and it is the last (closing) segment.
+				addProcessedSegment(&c.eventQueue, cont.segment(i), _SUBJECT)
+			}
 		}
 	}
 	for _, cont := range c.clipping {

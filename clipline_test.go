@@ -1,6 +1,7 @@
 package polyclip
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -27,17 +28,42 @@ func TestClipLine(t *testing.T) {
 }
 
 func TestClipLine_within(t *testing.T) {
-	subject := Polygon{{
-		{-3999, -3999}, {-3500, -3500},
-	}}
-	clipping := Polygon{{
-		{-4000, -4000}, {0, -4000}, {0, 0}, {-4000, 0}, {-4000, -4000},
-	}}
-	want := Polygon{{
-		{-3500, -3500}, {-3999, -3999},
-	}}
-	r := subject.Construct(CLIPLINE, clipping)
-	if !reflect.DeepEqual(r, want) {
-		t.Errorf("%+v != %+v", r, want)
+	tests := []struct {
+		subject, clipping, want Polygon
+	}{
+		{
+			subject: Polygon{{
+				{-3999, -3999}, {-3500, -3500},
+			}},
+			clipping: Polygon{{
+				{-4000, -4000}, {0, -4000}, {0, 0}, {-4000, 0}, {-4000, -4000},
+			}},
+			want: Polygon{{
+				{-3500, -3500}, {-3999, -3999},
+			}},
+		},
+		{
+			subject: Polygon{{
+				{X: 1.893757843025658e+06, Y: 358279.0127257189},
+				{X: 1.893986642180132e+06, Y: 359465.8124818327},
+				{X: 1.893983849777607e+06, Y: 359429.8946016282},
+			}},
+			clipping: Polygon{{{X: 1.89e+06, Y: 340000}, {X: 1.91e+06, Y: 340000}, {X: 1.91e+06, Y: 360000},
+				{X: 1.89e+06, Y: 360000}, {X: 1.89e+06, Y: 340000}}},
+			want: Polygon{{
+				{X: 1.893757843025658e+06, Y: 358279.0127257189},
+				{X: 1.893986642180132e+06, Y: 359465.8124818327},
+				{X: 1.893983849777607e+06, Y: 359429.8946016282},
+			}},
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			r := test.subject.Construct(CLIPLINE, test.clipping)
+			if !reflect.DeepEqual(r, test.want) {
+				t.Errorf("%+v != %+v", r, test.want)
+			}
+		})
 	}
 }

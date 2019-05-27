@@ -224,7 +224,7 @@ const (
 	INTERSECTION
 	DIFFERENCE
 	XOR
-	CLIPLINE // CLIPLINE assumes that the subject polygon is actually a polygon and clips it
+	CLIPLINE // CLIPLINE assumes that the subject polygon is actually a line string and clips it.
 )
 
 // Construct computes a 2D polygon, which is a result of performing
