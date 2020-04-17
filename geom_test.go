@@ -50,6 +50,22 @@ func TestEqualWithin(t *T) {
 	verify(t, p.equalWithin(Point{1e-11, 1e-11}, 1e-10), "Expected equal")
 }
 
+func TestPointIsBefore(t *T) {
+	cases := []struct {
+		p1, p2 Point
+		before bool
+	}{
+		{Point{0, 1}, Point{0, 1}, false},
+		{Point{0, 1}, Point{1, 1}, true},
+		{Point{0, 1}, Point{-1, 1}, false},
+		{Point{0, 1}, Point{0, 2}, true},
+		{Point{0, 1}, Point{0, -1}, false},
+	}
+	for i, v := range cases {
+		verify(t, v.p1.isBefore(v.p2) == v.before, "Expected %v isBefore(%v)=%v (case %d)", v.p1, v.p2, v.before, i)
+	}
+}
+
 func rect(x, y, w, h float64) Rectangle {
 	return Rectangle{Min: Point{x, y}, Max: Point{x + w, y + h}}
 }

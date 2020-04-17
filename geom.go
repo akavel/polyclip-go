@@ -46,6 +46,12 @@ func (p1 Point) equalWithin(p2 Point, tol float64) bool {
 		floats.EqualWithinAbsOrRel(p1.Y, p2.Y, tol, tol)
 }
 
+// isBefore() returns true if this point is considered "left" of the
+// other point according to the semantics of the sweep line.
+func (p1 Point) isBefore(p2 Point) bool {
+	return p1.X < p2.X || p1.X == p2.X && p1.Y < p2.Y
+}
+
 // Length returns distance from p to point (0, 0).
 func (p Point) Length() float64 {
 	return math.Sqrt(p.X*p.X + p.Y*p.Y)

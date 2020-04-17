@@ -146,7 +146,7 @@ func (c *clipper) processIntersectionSimplify(e1, e2 *endpoint) []*endpoint {
 
 	// Adjust for floating point imprecision when intersections are created at endpoints, which
 	// otherwise has the tendency to corrupt the original polygons with new, almost-parallel segments.
-	ip1 = snap(ip1, e1.p, e2.p, e1.other.p, e2.other.p)
+	ip1 = snap(ip1, e1, e2)
 
 	if numIntersections == 1 {
 		ep := make([]*endpoint, 0, 2)
@@ -162,7 +162,7 @@ func (c *clipper) processIntersectionSimplify(e1, e2 *endpoint) []*endpoint {
 	}
 
 	// The line segements overlap.
-	ip2 = snap(ip2, e1.p, e2.p, e1.other.p, e2.other.p)
+	ip2 = snap(ip2, e1, e2)
 	ep := make([]*endpoint, 0, 2)
 	if !ip1.Equals(e1.p) && !ip2.Equals(e1.other.p) {
 		ep = append(ep, c.divideSegment(e1, ip1))

@@ -26,6 +26,7 @@ package polyclip
 import (
 	"fmt"
 	"math"
+	"sort"
 )
 
 //func _DBG(f func()) { f() }
@@ -200,23 +201,32 @@ func (c *clipper) compute(operation Op) Polygon {
 				}
 			})
 
+			divided := make(map[*endpoint]bool)
 			// Process a possible intersection between "e" and its next neighbor in S
 			if next != nil {
-				c.possibleIntersection(e, next)
+				for _, seg := range c.possibleIntersection(e, next) {
+					if seg != nil {
+						divided[seg] = true
+					}
+				}
 			}
 			// Process a possible intersection between "e" and its previous neighbor in S
 			if prev != nil {
-				divided := c.possibleIntersection(prev, e)
-				// If [prev] was divided, the context (sweep line S) for [e] may have changed,
-				// altering what e.inout and e.inside should be. [e] must thus be reenqueued to
-				// recompute e.inout and e.inside.
-				//
-				// (This should not be done if [e] was also divided; in that case
-				//  the divided segments are already enqueued).
-				if len(divided) == 1 && divided[0] == prev {
-					S.remove(e)
-					c.eventQueue.enqueue(e)
+				for _, seg := range c.possibleIntersection(prev, e) {
+					if seg != nil {
+						divided[seg] = true
+					}
 				}
+			}
+			// If [prev] or [next] was divided but [e] was not, the context (sweep line S)
+			// for [e] may have changed, altering what e.inout and e.inside should be.
+			// [e] must thus be reenqueued to recompute e.inout and e.inside.
+			//
+			// (This should not be done if [e] was also divided; in that case
+			//  the divided segments are already enqueued).
+			if len(divided) > 0 && !divided[e] {
+				S.remove(e)
+				c.eventQueue.enqueue(e)
 			}
 		} else { // the line segment must be removed from S
 			otherPos := -1
@@ -302,7 +312,7 @@ func findIntersection(seg0, seg1 segment, tryBothDirections bool) (int, Point, P
 	d0 := Point{seg0.end.X - p0.X, seg0.end.Y - p0.Y}
 	p1 := seg1.start
 	d1 := Point{seg1.end.X - p1.X, seg1.end.Y - p1.Y}
-	sqrEpsilon := 1e-15 // was originally 1e-3, which is very prone to false positives
+	sqrEpsilon := 1e-21 // was originally 1e-3, which is very prone to false positives
 	E := Point{p1.X - p0.X, p1.Y - p0.Y}
 	kross := d0.X*d1.Y - d0.Y*d1.X
 	sqrKross := kross * kross
@@ -400,9 +410,23 @@ func findIntersection2(u0, u1, v0, v1 float64, w *[]float64) int {
 
 // snaps the [pt] to one of [toPts] if they are equal within a tolerance factor.
 // If none of the points are within the tolerance, the original pt is returned.
-func snap(pt Point, toPts ...Point) Point {
-	const tolerance = 3e-14
-	for _, p := range toPts {
+func snap(pt Point, e1, e2 *endpoint) Point {
+	pts := []Point{e1.p, e2.p, e1.other.p, e2.other.p}
+	for _, p := range pts {
+		if pt.Equals(p) { // Prefer strict equality over snapping.
+			return p
+		}
+	}
+	// Order the points in sweep-line ordering and test the middle points
+	// first (i.e. 2, 1, 0, 3) to avoid creating invalid divisions when
+	// two endpoints are within the tolerance.
+	sort.Slice(pts, func(i, j int) bool {
+		return pts[i].isBefore(pts[j])
+	})
+	pts[0], pts[2] = pts[2], pts[0]
+
+	const tolerance = 8e-14
+	for _, p := range pts {
 		if pt.equalWithin(p, tolerance) {
 			return p
 		}
@@ -414,25 +438,26 @@ func snap(pt Point, toPts ...Point) Point {
 func (c *clipper) possibleIntersection(e1, e2 *endpoint) []*endpoint {
 	numIntersections, ip1, _ := findIntersection(e1.segment(), e2.segment(), true)
 
-	if numIntersections == 0 {
+	switch {
+	case numIntersections == 0:
 		return nil
+	case numIntersections == 1 && (e1.p.Equals(e2.p) || e1.other.p.Equals(e2.other.p)):
+		return nil // the line segments intersect at an endpoint of both line segments
 	}
 
 	// Adjust for floating point imprecision when intersections are created at endpoints, which
 	// otherwise has the tendency to corrupt the original polygons with new, almost-parallel segments.
-	ip1 = snap(ip1, e1.p, e2.p, e1.other.p, e2.other.p)
+	ip1 = snap(ip1, e1, e2)
 
 	if numIntersections == 1 {
 		switch {
-		case e1.p.Equals(e2.p) || e1.other.p.Equals(e2.other.p):
-			return nil // the line segments intersect at an endpoint of both line segments
-		case !isValidSingleIntersection(e1, e2, ip1):
-			_DBG(func() { fmt.Printf("Dropping invalid intersection %v between %v and %v\n", ip1, e1, e2) })
-			return nil
 		case e1.p.Equals(ip1) || e1.other.p.Equals(ip1): // e1 divides e2
 			return []*endpoint{c.divideSegment(e2, ip1)}
 		case e2.p.Equals(ip1) || e2.other.p.Equals(ip1): // e2 divides e1
 			return []*endpoint{c.divideSegment(e1, ip1)}
+		case !isValidSingleIntersection(e1, e2, ip1):
+			_DBG(func() { fmt.Printf("Dropping invalid intersection %v between %v and %v\n", ip1, e1, e2) })
+			return nil
 		default: // e1 and e2 divide each other
 			return []*endpoint{
 				c.divideSegment(e1, ip1),
@@ -442,7 +467,12 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) []*endpoint {
 	}
 
 	if numIntersections == 2 && e1.polygonType == e2.polygonType {
-		return nil // the line segments overlap, but they belong to the same polygon
+		_DBG(func() {
+			fmt.Printf("Dropping intersection %v from overlapping edges of the same polygon %v and %v\n", ip1, e1, e2)
+		})
+		// Note: This case is technically not handled by the algorithm. The original C++ code
+		// outputs: "Sorry, edges of the same polygon overlap" and exits.
+		return nil
 	}
 
 	// The line segments overlap
@@ -512,13 +542,16 @@ func (c *clipper) possibleIntersection(e1, e2 *endpoint) []*endpoint {
 
 	// one line segment includes the other one
 	sortedEvents[1].edgeType, sortedEvents[1].other.edgeType = _EDGE_NON_CONTRIBUTING, _EDGE_NON_CONTRIBUTING
-	c.divideSegment(sortedEvents[0], sortedEvents[1].p)
+	firstDivided := c.divideSegment(sortedEvents[0], sortedEvents[1].p)
 	if e1.inout == e2.inout {
 		sortedEvents[3].other.edgeType = _EDGE_SAME_TRANSITION
 	} else {
 		sortedEvents[3].other.edgeType = _EDGE_DIFFERENT_TRANSITION
 	}
-	return []*endpoint{c.divideSegment(sortedEvents[3].other, sortedEvents[2].p)}
+	return []*endpoint{
+		firstDivided,
+		c.divideSegment(sortedEvents[3].other, sortedEvents[2].p),
+	}
 }
 
 // Returns the original endpoint if successfully divided, otherwise nil.
