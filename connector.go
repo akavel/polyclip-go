@@ -34,6 +34,16 @@ func (c *connector) add(s segment) {
 	// j iterates through the openPolygon chains.
 	for j := range c.openPolys {
 		chain := &c.openPolys[j]
+		// Coincident segments cancel each other out.
+		if chain.removeCoincidentSegment(s) {
+			if chain.isEmpty() {
+				c.openPolys = append(c.openPolys[0:j], c.openPolys[j+1:]...)
+			}
+			return
+		}
+	}
+	for j := range c.openPolys {
+		chain := &c.openPolys[j]
 		if !chain.linkSegment(s) {
 			continue
 		}

@@ -38,6 +38,29 @@ func newChain(s segment) *chain {
 
 func (c *chain) pushFront(p Point) { c.points = append([]Point{p}, c.points...) }
 func (c *chain) pushBack(p Point)  { c.points = append(c.points, p) }
+func (c *chain) popFront()         { c.points = c.points[1:] }
+func (c *chain) popBack()          { c.points = c.points[0 : len(c.points)-1] }
+func (c *chain) isEmpty() bool     { return len(c.points) < 2 }
+
+// direction-agnostic equivalence
+func (s segment) coincidesWith(start, end Point) bool {
+	return s.start.Equals(start) && s.end.Equals(end) || s.start.Equals(end) && s.end.Equals(start)
+}
+
+func (c *chain) removeCoincidentSegment(s segment) bool {
+	if s.coincidesWith(c.points[0], c.points[1]) {
+		c.popFront()
+		c.closed = false
+		return true
+	}
+	last := len(c.points) - 1
+	if s.coincidesWith(c.points[last], c.points[last-1]) {
+		c.popBack()
+		c.closed = false
+		return true
+	}
+	return false
+}
 
 // Links a segment to the chain
 func (c *chain) linkSegment(s segment) bool {

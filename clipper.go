@@ -246,33 +246,39 @@ func (c *clipper) compute(operation Op) Polygon {
 				}
 			}
 
-			// Check if the line segment belongs to the Boolean operation
-			switch e.edgeType {
-			case _EDGE_NORMAL:
-				switch operation {
-				case INTERSECTION:
-					if e.other.inside {
-						connector.add(e.segment())
-					}
-				case UNION:
-					if !e.other.inside {
-						connector.add(e.segment())
-					}
-				case DIFFERENCE:
-					if (e.polygonType == _SUBJECT && !e.other.inside) ||
-						(e.polygonType == _CLIPPING && e.other.inside) {
-						connector.add(e.segment())
-					}
-				case XOR:
+			if operation == _MAKE_VALID { // _MAKE_VALID is actually a unary operation; the _CLIPPING is ignored.
+				if e.polygonType == _SUBJECT {
 					connector.add(e.segment())
 				}
-			case _EDGE_SAME_TRANSITION:
-				if operation == INTERSECTION || operation == UNION {
-					connector.add(e.segment())
-				}
-			case _EDGE_DIFFERENT_TRANSITION:
-				if operation == DIFFERENCE {
-					connector.add(e.segment())
+			} else { // Check if the line segment belongs to the Boolean operation
+
+				switch e.edgeType {
+				case _EDGE_NORMAL:
+					switch operation {
+					case INTERSECTION:
+						if e.other.inside {
+							connector.add(e.segment())
+						}
+					case UNION:
+						if !e.other.inside {
+							connector.add(e.segment())
+						}
+					case DIFFERENCE:
+						if (e.polygonType == _SUBJECT && !e.other.inside) ||
+							(e.polygonType == _CLIPPING && e.other.inside) {
+							connector.add(e.segment())
+						}
+					case XOR:
+						connector.add(e.segment())
+					}
+				case _EDGE_SAME_TRANSITION:
+					if operation == INTERSECTION || operation == UNION {
+						connector.add(e.segment())
+					}
+				case _EDGE_DIFFERENT_TRANSITION:
+					if operation == DIFFERENCE {
+						connector.add(e.segment())
+					}
 				}
 			}
 

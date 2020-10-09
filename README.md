@@ -15,9 +15,7 @@ The original paper describes the algorithm as performing in time _O((n+k) log n)
 ## Limitations
 
 - Although the algorithm will not produce self-intersecting polygons, it is not designed
-  to handle them either. The behavior of the library is undefined if it is given
-  self-intersecting polygons. This includes the scenarios in
-  https://github.com/akavel/polyclip-go/issues/3.
+  to handle them either. To remove self-intersections from polygons, use `MakeValid()`.
 
 ## Example
 
