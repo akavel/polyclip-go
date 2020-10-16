@@ -172,7 +172,15 @@ func (c *clipper) compute(operation Op) Polygon {
 					} else {
 						e.inout = true
 					}
-				} else { // the previous two line segments in S are overlapping line segments
+				} else if e.segmentsEqual(prev) {
+					// The second of two overlapping line segments. Determine the flags from the edge types.
+					if e.edgeType == _EDGE_SAME_TRANSITION || prev.edgeType == _EDGE_SAME_TRANSITION {
+						e.inout = prev.inout
+					} else {
+						e.inout = !prev.inout
+					}
+				} else {
+					// The previous two line segments in S are overlapping line segments
 					prevTwo := S[pos-2]
 					if prev.polygonType == e.polygonType {
 						e.inout = !prev.inout
