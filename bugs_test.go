@@ -710,6 +710,54 @@ func TestOverlappingSegments(t *T) {
 	}.verify(t)
 }
 
+func TestSharedVertex(t *T) {
+	// Three triangles that share a single vertex.
+	testCases{
+		{
+			op: polyclip.UNION,
+			subject: polyclip.Polygon{
+				{{0, 6}, {5, 5}, {2, 10}},
+				{{4, 0}, {10, 4}, {5, 5}},
+			},
+			clipping: polyclip.Polygon{
+				{{5, 5}, {10, 8}, {8, 10}},
+			},
+			result: polyclip.Polygon{{
+				{0, 6}, {5, 5}, {4, 0}, {10, 4}, {5, 5}, {10, 8}, {8, 10}, {5, 5}, {2, 10},
+			}},
+		},
+		{
+			// With vertical edges
+			op: polyclip.UNION,
+			subject: polyclip.Polygon{
+				{{0, 6}, {5, 5}, {5, 10}},
+				{{5, 0}, {10, 4}, {5, 5}},
+			},
+			clipping: polyclip.Polygon{
+				{{5, 5}, {10, 8}, {8, 10}},
+			},
+			result: polyclip.Polygon{{
+				{0, 6}, {5, 5}, {5, 0}, {10, 4}, {5, 5}, {10, 8}, {8, 10}, {5, 5}, {5, 10},
+			}},
+		},
+		{
+			// First triangle to the left of the other two
+			op: polyclip.UNION,
+			subject: polyclip.Polygon{
+				{{0, 6}, {5, 5}, {2, 10}},
+				{{6, 0}, {10, 4}, {5, 5}},
+			},
+			clipping: polyclip.Polygon{
+				{{5, 5}, {10, 8}, {8, 10}},
+			},
+			result: polyclip.Polygon{
+				{{0, 6}, {5, 5}, {2, 10}},
+				{{5, 5}, {10, 4}, {6, 0}, {5, 5}, {8, 10}, {10, 8}},
+			},
+		},
+	}.verify(t)
+}
+
 func TestNonReductiveSegmentDivisions(t *T) {
 	if Short() {
 		return
