@@ -90,11 +90,22 @@ func (cases testCases) verify(t *testing.T) {
 				}
 				expected[i] = path
 			}
+			normalizedExpected := dump(expected)
 
 			result := dump(c.subject.Construct(c.op, c.clipping))
-			if result != dump(expected) {
-				t.Errorf("case %d: %v\nsubject:  %v\nclipping: %v\nexpected: %v\ngot:      %v",
+			if result != normalizedExpected {
+				t.Errorf("case %d: %v\nsubject:  %v\nclipping: %v\nexpected: %v\ngot result:      %v",
 					i, c.op, c.subject, c.clipping, c.result, result)
+			}
+			validatedResult := dump(c.subject.MakeValid().Construct(c.op, c.clipping.MakeValid()))
+			if validatedResult != normalizedExpected {
+				t.Errorf("case %d: %v\nsubject:  %v\nclipping: %v\nexpected: %v\ngot validated result:      %v",
+					i, c.op, c.subject, c.clipping, c.result, validatedResult)
+			}
+			validatedExpected := dump(expected.MakeValid())
+			if validatedExpected != normalizedExpected {
+				t.Errorf("case %d: %v\nsubject:  %v\nclipping: %v\nexpected: %v\ngot validated expected:      %v",
+					i, c.op, c.subject, c.clipping, c.result, validatedExpected)
 			}
 		})
 	}
@@ -323,14 +334,14 @@ func TestIntersectionFalsePositives(t *testing.T) {
 			clipping: polyclip.Polygon{{
 				{100.00000001, 100},
 				{100, 99.99999988569955},
-				{99.99999999, 100.00000000000001},
+				{99.99999998, 100.00000000000001},
 				{100, 100.00000011430046},
 				{100.00000001, 100},
 			}},
 			result: polyclip.Polygon{{
 				{100.00000001, 100},
 				{100, 99.99999988569955},
-				{99.99999999, 100.00000000000001},
+				{99.99999998, 100.00000000000001},
 				{100, 100.00000011430046},
 				{100.00000001, 100},
 			}},
@@ -560,6 +571,191 @@ func TestSelfIntersectionAvoidance(t *testing.T) {
 				{39.99999999999999, 171.3397459621556},
 				{38.5721239031346, 172.33955556881023},
 			}},
+		},
+	}.verify(t)
+}
+
+func TestOverlappingSegments(t *testing.T) {
+	testCases{
+		{
+			// ----------
+			// |        /
+			// |       /
+			// |      /
+			// |     /
+			// |    /|
+			// |   /_|
+			// |  /
+			// | /
+			// |/
+			op: polyclip.UNION,
+			subject: polyclip.Polygon{{
+				{0, 0},
+				{10, 0},
+				{0, 10},
+			}},
+			clipping: polyclip.Polygon{{
+				{6, 5},
+				{6, 4},
+				{5, 5},
+			}},
+			result: polyclip.Polygon{{
+				{0, 0},
+				{10, 0},
+				{6, 4},
+				{6, 5},
+				{5, 5},
+				{0, 10},
+			}},
+		},
+		{
+			// ----------
+			// |        /
+			// |       /
+			// |      /
+			// |   __/
+			// |  | /
+			// |  |/
+			// |  /
+			// | /
+			// |/
+			op: polyclip.UNION,
+			subject: polyclip.Polygon{{
+				{0, 0},
+				{10, 0},
+				{0, 10},
+			}},
+			clipping: polyclip.Polygon{{
+				{6, 4},
+				{4, 5},
+				{5, 5},
+			}},
+			result: polyclip.Polygon{{
+				{0, 0},
+				{10, 0},
+				{6, 4},
+				{5, 5},
+				{0, 10},
+			}},
+		},
+		{
+			// |\
+			// | \
+			// |  \__
+			// |   \ |
+			// |    \|
+			// |     \
+			// |      \
+			// |       \
+			// ----------
+			op: polyclip.UNION,
+			subject: polyclip.Polygon{{
+				{0, 10},
+				{10, 10},
+				{0, 0},
+			}},
+			clipping: polyclip.Polygon{{
+				{6, 5},
+				{6, 6},
+				{5, 5},
+			}},
+			result: polyclip.Polygon{{
+				{0, 0},
+				{5, 5},
+				{6, 5},
+				{6, 6},
+				{10, 10},
+				{0, 10},
+			}},
+		},
+		{
+			// |\
+			// | \
+			// |  \
+			// |  |\
+			// |  |_\
+			// |     \
+			// |      \
+			// |       \
+			// ----------
+			op: polyclip.UNION,
+			subject: polyclip.Polygon{{
+				{0, 10},
+				{10, 10},
+				{0, 0},
+			}},
+			clipping: polyclip.Polygon{{
+				{5, 5},
+				{5, 6},
+				{6, 6},
+			}},
+			result: polyclip.Polygon{{
+				{0, 0},
+				{5, 5},
+				{6, 6},
+				{10, 10},
+				{0, 10},
+			}},
+		},
+		{
+			op: polyclip.UNION,
+			subject: polyclip.Polygon{{
+				{40131, 8372}, {40127, 8374}, {40126, 8375}, {40125, 8375}, {40122, 8377}, {40143, 8369},
+			}},
+			clipping: polyclip.Polygon{{
+				{40106, 8376}, {40128, 8373}, {40126, 8375},
+			}},
+			result: polyclip.Polygon{{
+				{40106, 8376}, {40128, 8373}, {40127, 8374}, {40131, 8372}, {40143, 8369}, {40122, 8377}, {40124.91891891892, 8375.054054054053},
+			}},
+		},
+	}.verify(t)
+}
+
+func TestSharedVertex(t *testing.T) {
+	// Three triangles that share a single vertex.
+	testCases{
+		{
+			op: polyclip.UNION,
+			subject: polyclip.Polygon{
+				{{0, 6}, {5, 5}, {2, 10}},
+				{{4, 0}, {10, 4}, {5, 5}},
+			},
+			clipping: polyclip.Polygon{
+				{{5, 5}, {10, 8}, {8, 10}},
+			},
+			result: polyclip.Polygon{{
+				{0, 6}, {5, 5}, {4, 0}, {10, 4}, {5, 5}, {10, 8}, {8, 10}, {5, 5}, {2, 10},
+			}},
+		},
+		{
+			// With vertical edges
+			op: polyclip.UNION,
+			subject: polyclip.Polygon{
+				{{0, 6}, {5, 5}, {5, 10}},
+				{{5, 0}, {10, 4}, {5, 5}},
+			},
+			clipping: polyclip.Polygon{
+				{{5, 5}, {10, 8}, {8, 10}},
+			},
+			result: polyclip.Polygon{{
+				{0, 6}, {5, 5}, {5, 0}, {10, 4}, {5, 5}, {10, 8}, {8, 10}, {5, 5}, {5, 10},
+			}},
+		},
+		{
+			// First triangle to the left of the other two
+			op: polyclip.UNION,
+			subject: polyclip.Polygon{
+				{{0, 6}, {5, 5}, {2, 10}},
+				{{6, 0}, {10, 4}, {5, 5}},
+			},
+			clipping: polyclip.Polygon{
+				{{5, 5}, {10, 8}, {8, 10}},
+			},
+			result: polyclip.Polygon{
+				{{0, 6}, {5, 5}, {2, 10}},
+				{{5, 5}, {10, 4}, {6, 0}, {5, 5}, {8, 10}, {10, 8}},
+			},
 		},
 	}.verify(t)
 }
@@ -867,4 +1063,103 @@ func TestInfiniteLoopBug(t *testing.T) {
 	if dump(want) != dump(result) {
 		t.Errorf("expected:\n%v\ngot:\n%v", dump(want), dump(result))
 	}
+}
+
+type testCaseMakeValid struct {
+	name   string
+	poly   polyclip.Polygon
+	result polyclip.Polygon
+}
+
+type testCasesMakeValid []testCaseMakeValid
+
+func (cases testCasesMakeValid) verify(t *testing.T) {
+	t.Helper()
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			result := dump(c.poly.MakeValid())
+			if result != dump(c.result) {
+				t.Errorf("%s:\npolygon:  %v\nexpected: %v\ngot:      %v",
+					c.name, c.poly, c.result, result)
+			}
+		})
+	}
+}
+
+func TestMakeValid(t *testing.T) {
+	testCasesMakeValid{
+		{
+			name: "Self-intersecting polygon",
+			poly: polyclip.Polygon{{{0, 0}, {1, 1}, {1, 0}, {0, 1}}},
+			result: polyclip.Polygon{
+				{{0, 0}, {0.5, 0.5}, {0, 1}},
+				{{0.5, 0.5}, {1, 1}, {1, 0}},
+			},
+		},
+		{
+			name: "Polygon with repeated vertical edge",
+			poly: polyclip.Polygon{{{0, 0}, {1, 0}, {1, 1}, {2, 1}, {2, 0}, {1, 0},
+				{1, 1}, {0, 1}}},
+			result: polyclip.Polygon{{{0, 0}, {1, 0}, {2, 0}, {2, 1}, {1, 1}, {0, 1}}},
+		},
+		{
+			name: "Polygon with repeated horizontal edge",
+			poly: polyclip.Polygon{{{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 2}, {1, 2},
+				{1, 1}, {0, 1}}},
+			result: polyclip.Polygon{{{0, 0}, {1, 0}, {1, 1}, {1, 2}, {0, 2}, {0, 1}}},
+		},
+		{
+			name:   "Polygon with repeated dangling edge 1",
+			poly:   polyclip.Polygon{{{0, 0}, {1, 0}, {0, 0}, {1, 0}, {1, 1}, {0, 1}}},
+			result: polyclip.Polygon{{{0, 0}, {1, 0}, {1, 1}, {0, 1}}},
+		},
+		{
+			name:   "Polygon with repeated dangling edge 2",
+			poly:   polyclip.Polygon{{{0, 0}, {1, 0}, {1, 1}, {1, 0}, {1, 1}, {0, 1}}},
+			result: polyclip.Polygon{{{0, 0}, {1, 0}, {1, 1}, {0, 1}}},
+		},
+		{
+			name:   "Polygon with repeated dangling edge 3",
+			poly:   polyclip.Polygon{{{0, 0}, {1, 0}, {1, 1}, {0, 1}, {1, 1}, {0, 1}}},
+			result: polyclip.Polygon{{{0, 0}, {1, 0}, {1, 1}, {0, 1}}},
+		},
+		{
+			name:   "Polygon with repeated dangling edge 4",
+			poly:   polyclip.Polygon{{{0, 0}, {1, 0}, {1, 1}, {0, 1}, {0, 0}, {0, 1}}},
+			result: polyclip.Polygon{{{0, 0}, {1, 0}, {1, 1}, {0, 1}}},
+		},
+		{
+			name: "Polygon with partially repeated edge",
+			poly: polyclip.Polygon{{{0, 0}, {1, 0}, {1, 0.75}, {2, 0.75}, {2, 0.25}, {1, 0.25},
+				{1, 1}, {0, 1}}},
+			result: polyclip.Polygon{{{0, 0}, {1, 0}, {1, 0.25}, {2, 0.25}, {2, 0.75},
+				{1, 0.75}, {1, 1}, {0, 1}}},
+		},
+		{
+			name: "Polygon with repeated edge in opposite direction",
+			poly: polyclip.Polygon{
+				{{0, 0}, {1, 0}, {1, 1}, {0, 1}},
+				{{1, 0}, {2, 0}, {2, 1}, {1, 1}},
+			},
+			result: polyclip.Polygon{
+				{{0, 0}, {1, 0}, {2, 0}, {2, 1}, {1, 1}, {0, 1}},
+			},
+		},
+		{
+			name: "Polygon with partially repeated edge in opposite direction",
+			poly: polyclip.Polygon{
+				{{0, 0}, {1, 0}, {1, 1}, {0, 1}},
+				{{1, 0.25}, {2, 0.25}, {2, 0.75}, {1, 0.75}},
+			},
+			result: polyclip.Polygon{
+				{{0, 0}, {1, 0}, {1, 0.25}, {2, 0.25},
+					{2, 0.75}, {1, 0.75}, {1, 1}, {0, 1}},
+			},
+		},
+		{
+			name:   "Completely degenerate",
+			poly:   polyclip.Polygon{{{1, 2}, {2, 2}, {2, 3}, {1, 2}, {2, 2}, {2, 3}}},
+			result: polyclip.Polygon{},
+		},
+	}.verify(t)
 }

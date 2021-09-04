@@ -176,7 +176,15 @@ func (c *clipper) compute(operation Op) Polygon {
 					} else {
 						e.inout = true
 					}
-				} else { // the previous two line segments in S are overlapping line segments
+				} else if e.segmentsEqual(prev) {
+					// The second of two overlapping line segments. Determine the flags from the edge types.
+					if e.edgeType == _EDGE_SAME_TRANSITION || prev.edgeType == _EDGE_SAME_TRANSITION {
+						e.inout = prev.inout
+					} else {
+						e.inout = !prev.inout
+					}
+				} else {
+					// The previous two line segments in S are overlapping line segments
 					prevTwo := S[pos-2]
 					if prev.polygonType == e.polygonType {
 						e.inout = !prev.inout
@@ -250,38 +258,43 @@ func (c *clipper) compute(operation Op) Polygon {
 				}
 			}
 
-			// Check if the line segment belongs to the Boolean operation
-			if operation == CLIPLINE {
-				if e.other.inside && e.polygonType == _SUBJECT {
+			if operation == _MAKE_VALID { // _MAKE_VALID is actually a unary operation; the _CLIPPING is ignored.
+				if e.polygonType == _SUBJECT {
 					connector.add(e.segment())
 				}
-			}
-			switch e.edgeType {
-			case _EDGE_NORMAL:
-				switch operation {
-				case INTERSECTION:
-					if e.other.inside {
+			} else { // Check if the line segment belongs to the Boolean operation
+				if operation == CLIPLINE {
+					if e.other.inside && e.polygonType == _SUBJECT {
 						connector.add(e.segment())
 					}
-				case UNION:
-					if !e.other.inside {
-						connector.add(e.segment())
-					}
-				case DIFFERENCE:
-					if (e.polygonType == _SUBJECT && !e.other.inside) ||
-						(e.polygonType == _CLIPPING && e.other.inside) {
-						connector.add(e.segment())
-					}
-				case XOR:
-					connector.add(e.segment())
 				}
-			case _EDGE_SAME_TRANSITION:
-				if operation == INTERSECTION || operation == UNION {
-					connector.add(e.segment())
-				}
-			case _EDGE_DIFFERENT_TRANSITION:
-				if operation == DIFFERENCE {
-					connector.add(e.segment())
+				switch e.edgeType {
+				case _EDGE_NORMAL:
+					switch operation {
+					case INTERSECTION:
+						if e.other.inside {
+							connector.add(e.segment())
+						}
+					case UNION:
+						if !e.other.inside {
+							connector.add(e.segment())
+						}
+					case DIFFERENCE:
+						if (e.polygonType == _SUBJECT && !e.other.inside) ||
+							(e.polygonType == _CLIPPING && e.other.inside) {
+							connector.add(e.segment())
+						}
+					case XOR:
+						connector.add(e.segment())
+					}
+				case _EDGE_SAME_TRANSITION:
+					if operation == INTERSECTION || operation == UNION {
+						connector.add(e.segment())
+					}
+				case _EDGE_DIFFERENT_TRANSITION:
+					if operation == DIFFERENCE {
+						connector.add(e.segment())
+					}
 				}
 			}
 

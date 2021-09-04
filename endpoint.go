@@ -62,6 +62,10 @@ func (se *endpoint) segment() segment {
 	return segment{se.p, se.other.p}
 }
 
+func (e1 *endpoint) segmentsEqual(e2 *endpoint) bool {
+	return e1.segment() == e2.segment()
+}
+
 func signedArea(p0, p1, p2 Point) float64 {
 	return (p0.X-p2.X)*(p1.Y-p2.Y) -
 		(p1.X-p2.X)*(p0.Y-p2.Y)

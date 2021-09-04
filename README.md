@@ -15,7 +15,7 @@ The original paper describes the algorithm as performing in time _O((n+k) log n)
 ## Limitations
 
 - Although the algorithm will not produce self-intersecting polygons, it is not designed
-  to handle them either. To remove self-intersections from polygons, use `Simplify()`.
+  to handle them either. To remove self-intersections from polygons, use `MakeValid()`.
 
 ## Example
 
